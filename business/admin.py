@@ -1,5 +1,6 @@
 from django.contrib import admin
 from business.models import Favour, Project, Review, ProjectService
+from general.models import UserProfile
 
 @admin.register(Favour)
 class FavourAdmin(admin.ModelAdmin):
@@ -16,6 +17,8 @@ class ReviewAdmin(admin.ModelAdmin):
 @admin.register(ProjectService)
 class ProjectServiceAdmin(admin.ModelAdmin):
     list_display = ['project', 'favour']
+
+
 
 
 

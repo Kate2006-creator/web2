@@ -52,6 +52,10 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+CSRF_COOKIE_SECURE = False  # Для разработки, для продакшена должно быть True
+CSRF_COOKIE_HTTPONLY = False  # Чтобы JS мог получить токен
+CORS_ALLOW_CREDENTIALS = True  # Если используете CORS
+
 ROOT_URLCONF = 'app.urls'
 
 TEMPLATES = [
@@ -86,21 +90,23 @@ DATABASES = {
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
 
-AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
-]
+#AUTH_PASSWORD_VALIDATORS = [
+ #   {
+  #      'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+   # },
+    #{
+#        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+ #   },
+ #   {
+  #      'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+   # },
+ #   {
+  #      'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+   # },
+#]
 
+MEDIA_ROOT = BASE_DIR / "media"
+MEDIA_URL = "/media/"
 
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/

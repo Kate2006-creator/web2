@@ -18,7 +18,6 @@ class Favour(models.Model):
         return self.name
 
 class Project(models.Model):
-    STATUSES = ['В работе', 'На согласовании', 'Планируется', 'Завершен']
     name = models.TextField("Название")
     description = models.TextField("Описание")
     status = models.TextField("Статус")
@@ -40,6 +39,7 @@ class Review(models.Model):
     description = models.TextField("Описание")
     mark = models.IntegerField("Оценка")
     pr = models.ForeignKey("Project", on_delete=models.CASCADE, null=True)
+    picture = models.ImageField("Изображение", null=True, upload_to="business")
 
     class Meta:
         verbose_name = "Отзыв"

@@ -31,6 +31,8 @@ class UserProfile(models.Model):
         choices=USER_TYPES
     )
 
+    picture = models.ImageField("Изображение", null=True, upload_to="business")
+
     # ПОЛЯ ДЛЯ КЛИЕНТОВ
     company_name = models.CharField("Название компании", max_length=200, blank=True)
 
