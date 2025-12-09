@@ -1,6 +1,6 @@
 <script setup>
 import axios from "axios"
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, computed } from 'vue';
 import Cookies from 'js-cookie';
 
 const projectServices = ref([]);
@@ -14,7 +14,10 @@ const projectServiceToAdd = ref({
   notes: '',
 });
 const projectServiceToEdit = ref({});
-const errorMessage = ref('');
+const wordExportUrl = computed(() => {
+  return "/api/project_services/export_word";
+});
+
 
 axios.defaults.headers.common['X-CSRFToken'] = Cookies.get("csrftoken");
 
@@ -67,10 +70,9 @@ async function fetchEmployees() {
     console.log('Сотрудники для выбора:', employees.value);
 }
 
-// Добавление услуги в проект
+
 async function onProjectServiceAdd() {
 
-    // Проверяем обязательные поля
     if (!projectServiceToAdd.value.project || !projectServiceToAdd.value.favour) {
       alert('Выберите проект и услугу');
       return;
@@ -119,7 +121,7 @@ function onProjectServiceEditClick(projectService) {
   };
 }
 
-// Сохранение изменений услуги в проекте
+
 async function onUpdateProjectService() {
      const updateData = {
       project: projectServiceToEdit.value.project,
@@ -176,6 +178,12 @@ onMounted(async () => {
 
 <template>
   <div class="p-3">
+     <div class="d-flex gap-3 mb-2">
+      <a :href="wordExportUrl" class="btn btn-success" target="_blank">
+        <i class="bi bi-file-earmark-word me-2"></i>Выгрузка инфо в WORD
+      </a>
+    </div>
+
     <!-- Форма добавления услуги в проект -->
     <div class="mb-3">
       <h5>Добавление услуги в проект</h5>

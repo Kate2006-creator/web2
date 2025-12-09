@@ -1,6 +1,6 @@
 <script setup>
 import axios from "axios"
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, computed } from 'vue';
 import Cookies from 'js-cookie';
 
 const clients = ref([]);
@@ -18,7 +18,14 @@ const clientAddImageUrl = ref();
 const clientEditPictureRef = ref();
 const clientEditImageUrl = ref();
 const imageModalUrl = ref('');
-const errorMessage = ref('');
+
+const wordExportUrl = computed(() => {
+  return "/api/user_profiles/export_clients_word";
+});
+
+const stats = ref({
+  total_clients: 0
+});
 
 axios.defaults.headers.common['X-CSRFToken'] = Cookies.get("csrftoken");
 
@@ -26,6 +33,11 @@ async function fetchClients() {
     const r = await axios.get("/api/user_profiles/")  
     console.log(r.data)
     clients.value = r.data.filter(profile => profile.user_type === 'client');
+}
+
+async function fetchStats() {
+    const r = await axios.get("/api/user_profiles/stats/");
+    stats.value = r.data;
 }
 
 async function onClientAdd() {
@@ -67,6 +79,7 @@ async function onClientAdd() {
     if (clientPictureRef.value) clientPictureRef.value.value = '';
     
     await fetchClients();
+    await fetchStats();
     alert('Клиент успешно добавлен!');
 }
 
@@ -88,6 +101,7 @@ async function onRemoveClick(client) {
   if (confirm(`Удалить клиента ${client.fio}?`)) {
     await axios.delete(`/api/users/${client.user}/`);
     await fetchClients();
+    await fetchStats();
     alert('Клиент удален!');
   }
 }
@@ -133,24 +147,42 @@ async function onUpdateClient() {
     });
     
     await fetchClients();
+    await fetchStats();
     alert('Клиент обновлен!');
 }
 
-// Открытие модального окна с картинкой
 function openImageModal(imageUrl) {
   imageModalUrl.value = imageUrl;
 }
 
 onMounted(async () => {
   await fetchClients();
+  await fetchStats();
 })
 </script>
 
 <template>
   <div class="p-3">
+    <!-- Статистика -->
+      <h5>Статистика клиентов</h5>
+      <div class="d-flex gap-3 p-2">
+        <div class="badge bg-primary p-3 px-4">
+          Всего клиентов: {{ stats.total_clients || 0 }}
+        </div>
+    </div>
+
+    <div class="d-flex gap-3 p-2">
+      <a :href="wordExportUrl" class="btn btn-success" target="_blank">
+        <i class="bi bi-file-earmark-word me-2"></i>Выгрузка инфо в WORD
+      </a>
+    </div>
+  </div>
+
+  <div class="p-3">
+
     <!-- Форма добавления клиента -->
     <div class="mb-3">
-      <h5>Добавление клиента</h5>
+      <h3>Добавление клиента</h3>
       
       <div class="row mb-2">
         <div class="col-md-6">

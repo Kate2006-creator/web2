@@ -26,7 +26,7 @@ async function onLoginFormSubmit() {
     await userInfoStore.fetchUserInfo()
 
     if (is_authenticated.value){
-        router.push("/page2")
+        router.push("/clients")
     }
 }
 

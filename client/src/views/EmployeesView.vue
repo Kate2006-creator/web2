@@ -1,6 +1,6 @@
 <script setup>
 import axios from "axios"
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, computed } from 'vue';
 import Cookies from 'js-cookie';
 
 const employees = ref([]);
@@ -17,13 +17,23 @@ const employeeAddImageUrl = ref();
 const employeeEditPictureRef = ref();
 const employeeEditImageUrl = ref();
 const imageModalUrl = ref('');
-const errorMessage = ref('');
+const stats = ref({
+  total_employees: 0,
+});
+const wordExportUrl = computed(() => {
+  return "/api/user_profiles/export_employees_word";
+});
 
 axios.defaults.headers.common['X-CSRFToken'] = Cookies.get("csrftoken");
 
 async function fetchEmployees() {
     const r = await axios.get("/api/user_profiles/")  
     employees.value = r.data.filter(profile => profile.user_type === 'employee');
+}
+
+async function fetchStats() {
+    const r = await axios.get("/api/user_profiles/stats/");
+    stats.value = r.data;
 }
 
 async function onEmployeeAdd() {
@@ -76,34 +86,34 @@ async function onEmployeeAdd() {
         }
         
         await fetchEmployees();
+        await fetchStats();
         
         alert('Сотрудник успешно добавлен!');
 }
 
-// Функция для предпросмотра картинки при добавлении
 function employeeAddPictureChange() {
   if (employeePictureRef.value && employeePictureRef.value.files[0]) {
     employeeAddImageUrl.value = URL.createObjectURL(employeePictureRef.value.files[0]);
   }
 }
 
-// Функция для предпросмотра картинки при редактировании
 function employeeEditPictureChange() {
   if (employeeEditPictureRef.value && employeeEditPictureRef.value.files[0]) {
     employeeEditImageUrl.value = URL.createObjectURL(employeeEditPictureRef.value.files[0]);
   }
 }
 
-// Удаление сотрудника
+
 async function onRemoveEmployeeClick(employee) {
   if (confirm(`Удалить сотрудника ${employee.fio}?`)) {
       await axios.delete(`/api/users/${employee.user}/`);
       await fetchEmployees();
+      await fetchStats();
       alert('Сотрудник удален!');
   }
 }
 
-// Редактирование сотрудника - открытие модального окна
+
 function onEmployeeEditClick(employee) {
   employeeToEdit.value = { 
     ...employee,
@@ -118,16 +128,14 @@ function onEmployeeEditClick(employee) {
   }
 }
 
-// Сохранение изменений сотрудника
+
 async function onUpdateEmployee() { 
         const formData = new FormData();
-        
-        // Добавляем файл если выбран новый
+
         if (employeeEditPictureRef.value && employeeEditPictureRef.value.files[0]) {
             formData.append('picture', employeeEditPictureRef.value.files[0]);
         }
         
-        // Обновляем поля профиля СОТРУДНИКА
         formData.append('fio', employeeToEdit.value.fio || '');
         formData.append('position', employeeToEdit.value.position || ''); 
         formData.append('user_type', 'employee');  
@@ -144,20 +152,48 @@ async function onUpdateEmployee() {
         });
         
         await fetchEmployees();
+        await fetchStats();
         alert('Сотрудник обновлен!');
 }
 
-// Открытие модального окна с картинкой
 function openImageModal(imageUrl) {
   imageModalUrl.value = imageUrl;
 }
 
 onMounted(async () => {
   await fetchEmployees();
+  await fetchStats();
 })
 </script>
 
 <template>
+
+  <div class="p-3">
+    <!-- Статистика (простая) -->
+    <div class="mb-3">
+      <h5>Статистика пользователей</h5>
+      <div class="d-flex flex-wrap gap-2 mb-3">
+        <div class="badge bg-primary p-2 px-3">
+          Сотрудников: {{ stats.total_employees || 0 }}
+        </div>
+        
+        <div v-for="(count, position) in stats.employees_by_position" 
+             :key="position" 
+             class="badge bg-success p-2 px-3">
+          {{ position }}: {{ count }}
+        </div>
+      </div>
+    </div>
+
+     <div class="d-flex flex-wrap gap-2 mb-3">
+      <a :href="wordExportUrl" class="btn btn-success" target="_blank">
+        <i class="bi bi-file-earmark-word me-2"></i>Выгрузка инфо в WORD
+      </a>
+    </div>
+
+    </div>
+
+
   <div class="p-3">
     <!-- Форма добавления сотрудника -->
     <div class="mb-3">

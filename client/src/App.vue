@@ -24,18 +24,6 @@ async function onLogout() {
 
 <template>
 
-<nav class="navbar navbar-expand-lg bg-light">
-    <div class="container-fluid">
-        <div class="d-flex gap-3">
-            <router-link class="nav-link" to="/">Главная</router-link>
-            <router-link class="nav-link" to="/page0">Страница 1</router-link>
-            <router-link class="nav-link" to="/page2">Страница 2</router-link>
-            <router-link class="nav-link" to="/page3">Страница 3</router-link>
-            <button @click="onLogout" v-if="is_authenticated">Выйти</button>
-        </div>
-    </div>
-</nav>
-
   <nav class="navbar navbar-expand-lg bg-body-tertiary">
     <div class="container-fluid">
       <a class="navbar-brand" href="#">Студия</a>
@@ -48,7 +36,7 @@ async function onLogout() {
 
         <ul class="navbar-nav">
           <li class="nav-item">
-            <router-link class="nav-link" to="/clients">Клиенты</router-link>
+            <router-link class="nav-link" to="/clients" >Клиенты</router-link>
           </li>
           <li class="nav-item">
             <router-link class="nav-link" to="/favours">Услуги</router-link>
@@ -63,7 +51,7 @@ async function onLogout() {
             <router-link class="nav-link" to="/project_services">Добавить услугу</router-link>
           </li>
           <li class="nav-item">
-            <router-link class="nav-link" to="/employees">Сотрудники</router-link>
+            <router-link class="nav-link" to="/employees" v-if = "userInfoStore.hasPermission('general.can_see_EmployeesView')">Сотрудники</router-link>
           </li>
         
         </ul>
@@ -85,6 +73,8 @@ async function onLogout() {
             </ul>
           </li>
         </ul>
+
+        <button @click="onLogout" v-if="is_authenticated">Выйти</button>
 
       </div>
     </div>

@@ -7,16 +7,23 @@ export const useUserInfoStore = defineStore("userInfoStore", () => {
      
     const username = ref();
     const is_authenticated = ref(false);
+    const permissions = ref([]);
 
     async function fetchUserInfo() {
         const r = await axios.get("/api/users_login/my/");
 
         username.value = r.data.username;
         is_authenticated.value = r.data.is_authenticated;
+        permissions.value = r.data.permissions;
 
         axios.defaults.headers.common['X-CSRFToken'] = Cookies.get("csrftoken");
     }
     
+    function hasPermission(name){
+        return  permissions.value.includes(name);
+    }
+
+
     onBeforeMount(async ()=>{
         fetchUserInfo();
     })
@@ -25,6 +32,7 @@ export const useUserInfoStore = defineStore("userInfoStore", () => {
         username,
         is_authenticated,
 
-        fetchUserInfo
+        fetchUserInfo,
+        hasPermission,
     }
 });

@@ -1,6 +1,6 @@
 <script setup>
 import axios from "axios"
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, computed } from 'vue';
 import Cookies from 'js-cookie';
 
 const projects = ref([]);
@@ -12,7 +12,14 @@ const projectToAdd = ref({
   client_user: null,
 });
 const projectToEdit = ref({});
-const errorMessage = ref('');
+const stats = ref({
+  total_count: 0,
+  by_status: {}
+});
+const wordExportUrl = computed(() => {
+  return "/api/projects/export_word";
+});
+
 
 axios.defaults.headers.common['X-CSRFToken'] = Cookies.get("csrftoken");
 
@@ -20,6 +27,11 @@ async function fetchProjects() {
         const r = await axios.get("/api/projects/");
         projects.value = r.data;
 
+}
+
+async function fetchStats() {
+  const r = await axios.get("/api/projects/stats/");
+  stats.value = r.data;
 }
 
 async function fetchClients() {
@@ -39,8 +51,7 @@ async function fetchClients() {
                     };
             })
         );
-        
-        console.log('Клиенты для выбора:', clients.value);
+      
 }
 
 
@@ -66,6 +77,7 @@ async function onProjectAdd() {
         };
         
         await fetchProjects();
+        await fetchStats();
         
         alert('Проект успешно добавлен!');   
     }
@@ -75,6 +87,7 @@ async function onRemoveProject(project) {
     if (confirm(`Удалить проект "${project.name}"?`)) {
             await axios.delete(`/api/projects/${project.id}/`);
             await fetchProjects();
+            await fetchStats();
             alert('Проект удален!');
     }
 }
@@ -101,6 +114,7 @@ async function onUpdateProject() {
         await axios.patch(`/api/projects/${projectToEdit.value.id}/`, updateData);
         
         await fetchProjects();
+        await fetchStats();
         alert('Проект обновлен!');
     
 }
@@ -124,10 +138,36 @@ const projectStatuses = [
 onMounted(async () => {
     await fetchProjects();
     await fetchClients();
+    await fetchStats();
 })
 </script>
 
 <template>
+<div class="p-3">
+    <!-- Статистика проектов -->
+    <div class="mb-3">
+      <h5>Статистика проектов</h5>
+      <div class="d-flex gap-3 mb-2">
+        <div class="badge bg-secondary p-3 px-5">
+          Всего: {{ stats.total_count || 0 }}
+        </div>
+        <div v-for="(count, status) in stats.by_status" :key="status" 
+             class="badge bg-secondary p-3 px-4">
+          {{ status }}: {{ count }}
+        </div>
+      </div>
+    </div>
+
+         <div class="d-flex gap-3 mb-2">
+      <a :href="wordExportUrl" class="btn btn-success" target="_blank">
+        <i class="bi bi-file-earmark-word me-2"></i>Выгрузка инфо в WORD
+      </a>
+    </div>
+
+     </div>
+
+
+
   <div class="p-3">
     <div class="mb-3">
       <h5>Добавление проекта</h5>

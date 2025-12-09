@@ -1,6 +1,6 @@
 <script setup>
 import axios from "axios"
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, computed } from 'vue';
 import Cookies from 'js-cookie';
 
 const favours = ref([]);
@@ -10,7 +10,17 @@ const favourToAdd = ref({
   price: 0,
 });
 const favourToEdit = ref({});
-const errorMessage = ref('');
+
+const stats = ref({
+  total_count: 0,
+  min_price: 0,
+  max_price: 0,
+  avg_price: 0
+});
+
+const wordExportUrl = computed(() => {
+  return "/api/favours/export_word";
+});
 
 axios.defaults.headers.common['X-CSRFToken'] = Cookies.get("csrftoken");
 
@@ -22,6 +32,11 @@ async function fetchFavours() {
     favours.value = r.data;
 }
 
+async function fetchStats() {
+    const r = await axios.get("/api/favours/stats/");
+    stats.value = r.data;
+}
+
 async function onFavourAdd() {
     if (!favourToAdd.value.name) {
       alert('Заполните название услуги');
@@ -31,7 +46,7 @@ async function onFavourAdd() {
     const favourData = {
       name: favourToAdd.value.name,
       description: favourToAdd.value.description || '',
-      price: price,
+      price: favourToAdd.price,
     };
     
     const response = await axios.post("/api/favours/", favourData);
@@ -43,15 +58,16 @@ async function onFavourAdd() {
     };
   
     await fetchFavours();
+    await fetchStats();
     
     alert('Услуга успешно добавлена!');
 }
 
-// Удаление услуги
 async function onRemoveFavour(favour) {
   if (confirm(`Удалить услугу "${favour.name}"?`)) {
       await axios.delete(`/api/favours/${favour.id}/`);
       await fetchFavours();
+      await fetchStats();
       alert('Услуга удалена!');
   }
 }
@@ -72,24 +88,56 @@ async function onUpdateFavour() {
     const updateData = {
       name: favourToEdit.value.name,
       description: favourToEdit.value.description || '',
-      price: price,
+      price: favourToEdit.value.price, 
     };
+    
     const response = await axios.patch(`/api/favours/${favourToEdit.value.id}/`, updateData);
 
     await fetchFavours();
+    await fetchStats();
     alert('Услуга обновлена!');
 }
 
+
+
 onMounted(async () => {
   await fetchFavours();
+  await fetchStats();
 })
 </script>
 
 <template>
   <div class="p-3">
+  <div class="mb-3">
+  <h5>Статистика услуг</h5>
+  <div class="d-flex gap-3 mb-4">
+    <div class="badge bg-success p-2">
+      Всего услуг: {{ stats.total_count || 0 }}
+    </div>
+    <div class="badge bg-success p-2">
+      Средняя цена: {{ Math.round(stats.avg_price) }} ₽
+    </div>
+    <div class="badge bg-success p-2">
+      Самая высокая цена: {{ Math.round(stats.max_price) }} ₽
+    </div>
+    <div class="badge bg-success p-2">
+      Самая низкая цена: {{ Math.round(stats.min_price) }} ₽
+    </div>
+  </div>
+</div>
+
+     <div class="d-flex gap-3 mb-4">
+      <a :href="wordExportUrl" class="btn btn-success" target="_blank">
+        <i class="bi bi-file-earmark-word me-2"></i>Выгрузка инфо в WORD
+      </a>
+    </div>
+
+</div>
+
+  <div class="p-3">
     <!-- Форма добавления услуги -->
     <div class="mb-3">
-      <h5>Добавление услуги</h5>
+      <h3>Добавление услуги</h3>
       
       <div class="row mb-2">
         <div class="col-md-6">

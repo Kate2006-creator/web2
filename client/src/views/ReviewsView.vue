@@ -1,6 +1,6 @@
 <script setup>
 import axios from "axios"
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, computed } from 'vue';
 import Cookies from 'js-cookie';
 
 const reviews = ref([]);
@@ -16,7 +16,15 @@ const reviewAddImageUrl = ref();
 const reviewEditPictureRef = ref();
 const reviewEditImageUrl = ref();
 const imageModalUrl = ref('');
-const errorMessage = ref('');
+const stats = ref({
+  total_count: 0,
+  avg_mark: 0,
+  marks_distribution: {}  
+});
+
+const wordExportUrl = computed(() => {
+  return "/api/reviews/export_word";
+});
 
 axios.defaults.headers.common['X-CSRFToken'] = Cookies.get("csrftoken");
 
@@ -28,6 +36,11 @@ async function fetchReviews() {
 async function fetchProjects() {
   const r = await axios.get("/api/projects/");
   projects.value = r.data;
+}
+
+async function fetchStats() {
+  const r = await axios.get("/api/reviews/stats/");
+  stats.value = r.data;
 }
 
 async function onReviewAdd() {
@@ -66,6 +79,7 @@ async function onReviewAdd() {
   }
   
   await fetchReviews();
+  await fetchStats();
   
   alert('Отзыв успешно добавлен!');
 }
@@ -87,6 +101,7 @@ async function onRemoveReviewClick(review) {
   if (confirm(`Удалить отзыв с оценкой ${review.mark}?`)) {
     await axios.delete(`/api/reviews/${review.id}/`);
     await fetchReviews();
+    await fetchStats();
     alert('Отзыв удален!');
   }
 }
@@ -130,6 +145,7 @@ async function onUpdateReview() {
   });
   
   await fetchReviews();
+   await fetchStats();
   alert('Отзыв обновлен!');
 }
 
@@ -153,10 +169,47 @@ function getStarRating(mark) {
 onMounted(async () => {
   await fetchReviews();
   await fetchProjects();
+  await fetchStats();
 })
 </script>
 
 <template>
+<div class="p-3">
+    <div class="mb-3">
+      <h5>Статистика отзывов</h5>
+      
+      <div class="d-flex flex-wrap gap-2">
+        <div class="badge bg-success p-2 px-3">
+          Всего отзывов: {{ stats.total_count}}
+        </div>
+        <div class="badge bg-success p-2 px-3">
+          Средняя оценка: {{ stats.avg_mark }}
+        </div>
+      </div>
+      
+     
+      <div v-if="stats.marks_distribution && Object.keys(stats.marks_distribution).length > 0">
+        <h5 class="mt-3">Распределение по оценкам:</h5>
+        <div class="d-flex flex-wrap gap-2">
+          <div v-for="(count, mark) in stats.marks_distribution" 
+     :key="mark" 
+     class="badge bg-warning p-2 px-3">
+  {{ mark }}★: {{ count }}
+</div>
+        </div>
+      </div>
+    </div>
+
+     <div class="d-flex flex-wrap gap-2">
+      <a :href="wordExportUrl" class="btn btn-success" target="_blank">
+        <i class="bi bi-file-earmark-word me-2"></i>Выгрузка инфо в WORD
+      </a>
+    </div>
+
+    </div>
+
+
+
   <div class="p-3">
     <!-- Форма добавления отзыва -->
     <div class="mb-3">

@@ -42,3 +42,17 @@ class UserProfile(models.Model):
     class Meta:
         verbose_name = "Профиль пользователя"
         verbose_name_plural = "Профили пользователей"
+        permissions = [
+            ("can_see_ClientsView", "Может видеть страницу добавления клиентов"),
+
+            ("can_see_FavoursView", "Может видеть страницу добавления услуги"),
+
+            ("can_create_projects_admin", "Может создавать проекты с вкладкой выбора клиента"),
+            ("can_create_projects", "Может создавать проекты без вкладки выбора клиента"),
+
+            ("can_add_project_services", "Может добавлять услуги в проект"),
+            ("can_see_ProjectServicesView", "Может видеть страницу добавления услуги в проект"),
+
+            ("can_see_EmployeesView", "Может видеть страницу добавления сотрудников"),
+            
+            ]
