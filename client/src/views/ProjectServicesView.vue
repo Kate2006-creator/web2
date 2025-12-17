@@ -184,7 +184,6 @@ onMounted(async () => {
       </a>
     </div>
 
-    <!-- Форма добавления услуги в проект -->
     <div class="mb-3">
       <h5>Добавление услуги в проект</h5>
       
@@ -236,7 +235,6 @@ onMounted(async () => {
       <span class="ms-2">Услуг в проектах: {{ projectServices.length }}</span>
     </div>
     
-    <!-- Список услуг в проектах -->
     <div>
       <h5>Услуги в проектах</h5>
       <div v-if="projectServices.length === 0" class="text-muted">
@@ -294,7 +292,6 @@ onMounted(async () => {
       </div>
     </div>
 
-    <!-- Модальное окно редактирования услуги в проекте -->
     <div class="modal fade" id="editProjectServiceModal" tabindex="-1">
       <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -358,17 +355,5 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.badge {
-  font-size: 0.85em;
-  padding: 0.35em 0.65em;
-}
 
-.input-group-text {
-  background-color: #f8f9fa;
-  border-color: #dee2e6;
-}
-
-.border {
-  border-color: #e9ecef !important;
-}
 </style>

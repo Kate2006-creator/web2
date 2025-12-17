@@ -79,7 +79,7 @@ router.beforeEach((to, from) =>{
 
   const userInfoStore = useUserInfoStore();
   if (!userInfoStore.is_authenticated && to.name != "Login") {
-    return {name: "Login"}
+    return {name: "Login", query: {next: to.path}}
   }
 
 })

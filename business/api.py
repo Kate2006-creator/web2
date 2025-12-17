@@ -4,6 +4,8 @@ from business.models import Project, Favour, Review, ProjectService
 from general.models import UserProfile
 from django.contrib.auth.models import User
 
+from rest_framework import status
+
 from django.db.models import Avg, Count, Max, Min, Q
 from rest_framework.permissions import IsAuthenticated
 
@@ -22,6 +24,18 @@ from business.word_exporter import WordExporter
 class ProjectsViewset(mixins.ListModelMixin, mixins.CreateModelMixin, mixins.DestroyModelMixin, mixins.RetrieveModelMixin, mixins.UpdateModelMixin, GenericViewSet):
     queryset = Project.objects.all()
     serializer_class = ProjectSerializer
+
+    def get_queryset(self):
+        # Получаем текущего пользователя
+        user = self.request.user
+        
+        # Проверяем, является ли пользователь администратором
+        if user.is_staff:
+            # Админ видит все проекты
+            return Project.objects.all()
+        else:
+            # Клиент видит только свои проекты
+            return Project.objects.filter(client_user=user)
 
     class StatsSerializer(serializers.Serializer):
         total_count = serializers.IntegerField()
@@ -52,17 +66,17 @@ class ProjectsViewset(mixins.ListModelMixin, mixins.CreateModelMixin, mixins.Des
     
     @action(detail=False, methods=["GET"], url_path="export_word")
     def export_to_word(self, request, *args, **kwargs):
-        projects = Project.objects.select_related('client_user').all()
-        
+    # Берем проекты как в get_queryset
+        queryset = self.get_queryset()  
+    
         doc = WordExporter.export_to_word(
-            data=projects,
+            data=queryset,
             title="Список проектов",
             headers=["ID", "Название", "Описание", "Статус", "Клиент"],
-            fields=["id", "name", "description", "status", "client_user__first_name"]
+            fields=["id", "name", "description", "status", "client_user__username"]
         )
-        
+    
         return WordExporter.create_http_response(doc, "проекты.docx")
-
 
 
 class FavoursViewset(mixins.ListModelMixin, mixins.CreateModelMixin, mixins.DestroyModelMixin, mixins.RetrieveModelMixin, mixins.UpdateModelMixin, GenericViewSet):
@@ -135,8 +149,6 @@ class ReviewsViewset(mixins.ListModelMixin, mixins.CreateModelMixin, mixins.Dest
     
     @action(detail=False, methods=["GET"], url_path="stats")
     def get_stats(self, request, *args, **kwargs):
-        from django.db.models import Count, Avg
-
         stats = Review.objects.aggregate(
             total_count=Count("*"),
             avg_mark=Avg("mark"),
@@ -286,3 +298,35 @@ class UsersLoginViewset(GenericViewSet):
 class UsersViewset(mixins.ListModelMixin, mixins.CreateModelMixin, mixins.DestroyModelMixin, mixins.RetrieveModelMixin, mixins.UpdateModelMixin, GenericViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
+
+  # ✅ ДОБАВИТЬ ЭТО: разрешение только для staff
+    permission_classes = [IsAuthenticated]  # или ваши текущие permissions
+    
+    def get_queryset(self):
+        user = self.request.user
+        
+        # ✅ ДОБАВИТЬ ПРОВЕРКУ: только админы видят всех пользователей
+        if not user.is_staff:
+            # Обычные пользователи видят только себя
+            return User.objects.filter(id=user.id)
+        
+        # Админы видят всех
+        return User.objects.all()
+    
+    def create(self, request, *args, **kwargs):
+        # ✅ ДОБАВИТЬ: только админы могут создавать пользователей через API
+        if not request.user.is_staff:
+            return Response(
+                {"error": "Только администраторы могут создавать пользователей"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        return super().create(request, *args, **kwargs)
+    
+    def destroy(self, request, *args, **kwargs):
+        # ✅ ДОБАВИТЬ: только админы могут удалять пользователей
+        if not request.user.is_staff:
+            return Response(
+                {"error": "Только администраторы могут удалять пользователей"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        return super().destroy(request, *args, **kwargs)

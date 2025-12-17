@@ -211,7 +211,6 @@ onMounted(async () => {
 
 
   <div class="p-3">
-    <!-- Форма добавления отзыва -->
     <div class="mb-3">
       <h5>Добавление отзыва</h5>
       
@@ -272,8 +271,7 @@ onMounted(async () => {
       <span class="ms-2">Отзывов: {{ reviews.length }}</span>
     </div>
     
-    <!-- Список отзывов -->
-    <div>
+ <div>
       <h5>Список отзывов</h5>
       <div v-if="reviews.length === 0" class="text-muted">
         Отзывов нет
@@ -318,7 +316,7 @@ onMounted(async () => {
       </div>
     </div>
 
-    <!-- Модальное окно редактирования отзыва -->
+
     <div class="modal fade" id="editReviewModal" tabindex="-1">
       <div class="modal-dialog">
         <div class="modal-content">
@@ -378,7 +376,7 @@ onMounted(async () => {
               </div>
             </div>
             
-            <!-- Поле для изменения картинки -->
+
             <div class="row">
               <div class="col-md-6">
                 <label class="form-label">Изменить изображение</label>

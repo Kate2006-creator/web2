@@ -10,7 +10,8 @@ const router = useRouter();
 
 const userInfoStore = useUserInfoStore();
 const  {
-  is_authenticated
+  is_authenticated,
+  is_staff,
 } = storeToRefs(userInfoStore)
 
 
@@ -36,7 +37,9 @@ async function onLogout() {
 
         <ul class="navbar-nav">
           <li class="nav-item">
-            <router-link class="nav-link" to="/clients" >Клиенты</router-link>
+            <router-link v-if="userInfoStore.is_staff" to="/clients">
+  Клиенты
+</router-link>
           </li>
           <li class="nav-item">
             <router-link class="nav-link" to="/favours">Услуги</router-link>
@@ -80,7 +83,10 @@ async function onLogout() {
     </div>
   </nav>
   
-
+  
+<div v-if="userInfoStore.is_authenticated" class="fw-bold fs-4 mb-3 p-3">
+  Привет, {{ userInfoStore.username }} !
+</div>
   <router-view></router-view>
 
 </template>

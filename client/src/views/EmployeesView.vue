@@ -195,7 +195,6 @@ onMounted(async () => {
 
 
   <div class="p-3">
-    <!-- Форма добавления сотрудника -->
     <div class="mb-3">
       <h5>Добавление сотрудника</h5>
       
@@ -230,7 +229,7 @@ onMounted(async () => {
         </div>
       </div>
       
-      <!-- Поле для загрузки картинки -->
+
       <div class="row mb-2">
         <div class="col-md-6">
           <label class="form-label">Фотография</label>
@@ -255,8 +254,7 @@ onMounted(async () => {
       <button @click="fetchEmployees" class="btn btn-primary">Обновить список</button>
       <span class="ms-2">Сотрудников: {{ employees.length }}</span>
     </div>
-    
-    <!-- Список сотрудников -->
+
     <div>
       <h5>Список сотрудников</h5>
       <div v-if="employees.length === 0" class="text-muted">
@@ -295,7 +293,6 @@ onMounted(async () => {
       </div>
     </div>
 
-    <!-- Модальное окно редактирования сотрудника -->
     <div class="modal fade" id="editEmployeeModal" tabindex="-1">
       <div class="modal-dialog">
         <div class="modal-content">
@@ -389,7 +386,6 @@ onMounted(async () => {
       </div>
     </div>
 
-    <!-- Модальное окно для просмотра картинки (можно оставить общим) -->
     <div class="modal fade" id="imageModal" tabindex="-1">
       <div class="modal-dialog modal-lg">
         <div class="modal-content">

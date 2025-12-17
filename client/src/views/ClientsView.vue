@@ -2,6 +2,10 @@
 import axios from "axios"
 import { onMounted, ref, computed } from 'vue';
 import Cookies from 'js-cookie';
+import { useUserInfoStore } from "@/stores/user_info_store";
+import { storeToRefs } from "pinia";
+
+const userInfoStore = useUserInfoStore()
 
 const clients = ref([]);
 const clientToAdd = ref({
@@ -26,6 +30,11 @@ const wordExportUrl = computed(() => {
 const stats = ref({
   total_clients: 0
 });
+
+const {
+  is_staff
+} = storeToRefs(userInfoStore)
+
 
 axios.defaults.headers.common['X-CSRFToken'] = Cookies.get("csrftoken");
 
@@ -55,7 +64,7 @@ async function onClientAdd() {
     const userProfile = profiles.find(profile => profile.user === userId);
     const profileId = userProfile.id;
     
-    // 3. Обновляем профиль
+    //Обновляем профиль
     const profileFormData = new FormData();
     profileFormData.append('fio', clientToAdd.value.fio || '');
     profileFormData.append('company_name', clientToAdd.value.company_name || '');
@@ -158,12 +167,25 @@ function openImageModal(imageUrl) {
 onMounted(async () => {
   await fetchClients();
   await fetchStats();
+   if (!userInfoStore.is_staff) {
+    router.push('/');
+  };
 })
 </script>
 
 <template>
-  <div class="p-3">
-    <!-- Статистика -->
+
+ <div v-if="!userInfoStore.is_staff" class="p-3">
+    <div class="alert alert-danger text-center mt-5">
+      <h4>⛔ Доступ запрещен</h4>
+      <p>Страница "Клиент" доступна только администраторам.</p>
+      <button @click="$router.push('/')" class="btn btn-primary">
+        На главную
+      </button>
+    </div>
+  </div>
+
+  <div v-else class="p-3">
       <h5>Статистика клиентов</h5>
       <div class="d-flex gap-3 p-2">
         <div class="badge bg-primary p-3 px-4">
@@ -176,11 +198,10 @@ onMounted(async () => {
         <i class="bi bi-file-earmark-word me-2"></i>Выгрузка инфо в WORD
       </a>
     </div>
-  </div>
+  
 
   <div class="p-3">
 
-    <!-- Форма добавления клиента -->
     <div class="mb-3">
       <h3>Добавление клиента</h3>
       
@@ -215,7 +236,6 @@ onMounted(async () => {
         </div>
       </div>
       
-      <!-- Поле для загрузки картинки -->
       <div class="row mb-2">
         <div class="col-md-6">
           <label class="form-label">Фотография</label>
@@ -241,7 +261,7 @@ onMounted(async () => {
       <span class="ms-2">Клиентов: {{ clients.length }}</span>
     </div>
     
-    <!-- Список клиентов -->
+
     <div>
       <h5>Список клиентов</h5>
       <div v-if="clients.length === 0" class="text-muted">
@@ -279,8 +299,8 @@ onMounted(async () => {
         </div>
       </div>
     </div>
+    </div>
 
-    <!-- Модальное окно редактирования клиента -->
     <div class="modal fade" id="editClientModal" tabindex="-1">
       <div class="modal-dialog">
         <div class="modal-content">
@@ -333,7 +353,6 @@ onMounted(async () => {
               </div>
             </div>
             
-            <!-- Поле для изменения картинки -->
             <div class="row">
               <div class="col-md-6">
                 <label class="form-label">Изменить фотографию</label>
@@ -374,7 +393,6 @@ onMounted(async () => {
       </div>
     </div>
 
-    <!-- Модальное окно для просмотра картинки -->
     <div class="modal fade" id="imageModal" tabindex="-1">
       <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -392,4 +410,5 @@ onMounted(async () => {
       </div>
     </div>
   </div>
+
 </template>

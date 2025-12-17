@@ -24,9 +24,9 @@ async function onLoginFormSubmit() {
     password.value = '';
 
     await userInfoStore.fetchUserInfo()
-
+    
     if (is_authenticated.value){
-        router.push("/clients")
+        router.push(router.currentRoute.value.query.next || '/reviews')
     }
 }
 

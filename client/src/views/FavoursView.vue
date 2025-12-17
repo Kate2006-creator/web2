@@ -135,7 +135,7 @@ onMounted(async () => {
 </div>
 
   <div class="p-3">
-    <!-- Форма добавления услуги -->
+
     <div class="mb-3">
       <h3>Добавление услуги</h3>
       
@@ -212,7 +212,7 @@ onMounted(async () => {
       </div>
     </div>
 
-    <!-- Модальное окно редактирования услуги -->
+
     <div class="modal fade" id="editFavourModal" tabindex="-1">
       <div class="modal-dialog">
         <div class="modal-content">
@@ -253,13 +253,4 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.badge {
-  font-size: 0.85em;
-  padding: 0.35em 0.65em;
-}
-
-.input-group-text {
-  background-color: #f8f9fa;
-  border-color: #dee2e6;
-}
 </style>
