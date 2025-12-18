@@ -37,9 +37,7 @@ async function onLogout() {
 
         <ul class="navbar-nav">
           <li class="nav-item">
-            <router-link v-if="userInfoStore.is_staff" to="/clients">
-  Клиенты
-</router-link>
+            <router-link class="nav-link" v-if="userInfoStore.is_staff" to="/clients">Клиенты</router-link>
           </li>
           <li class="nav-item">
             <router-link class="nav-link" to="/favours">Услуги</router-link>

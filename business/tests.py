@@ -21,6 +21,8 @@ class ProjectsViewsetTestCase(TestCase):
         self.client_profile.fio = "Тестовый Клиент"
         self.client_profile.company_name = "Test"
         self.client_profile.save()
+
+        self.client.force_authenticate(user=self.user)
     
     def tests_get_list(self):
         project = Project.objects.create(
@@ -41,7 +43,6 @@ class ProjectsViewsetTestCase(TestCase):
     def tests_create_project(self):
         r = self.client.post("/api/projects/", {
             "name": "Новый проект",
-            "client_user": self.client_profile.id, 
             "description": "Выживаем",
             "status": "Планирование"
         }) 
@@ -56,13 +57,15 @@ class ProjectsViewsetTestCase(TestCase):
         assert new_project.status == "Планирование"
 
     def tests_delete_project(self):
-        projects = baker.make("Project", 10)
+        projects = baker.make("Project", 10, client_user=self.user)
+        
         r = self.client.get('/api/projects/')
+        self.assertEqual(r.status_code, 200)
         data = r.json()
         assert len(data) == 10
 
         project_id_to_delete = projects[3].id
-        self.client.delete(f'/api/projects/{project_id_to_delete}/')
+        response = self.client.delete(f'/api/projects/{project_id_to_delete}/')
 
         r = self.client.get('/api/projects/')
         data = r.json()
@@ -71,17 +74,17 @@ class ProjectsViewsetTestCase(TestCase):
         assert project_id_to_delete not in [i['id'] for i in data]
     
     def tests_update_project(self):
-        projects = baker.make("Project", 10)
+        projects = baker.make("Project", 10, client_user=self.user)
         project: Project = projects[3]
 
         r = self.client.get(f'/api/projects/{project.id}/')
+        self.assertEqual(r.status_code, 200)
         data = r.json()
         assert data['name'] == project.name
         
         r = self.client.patch(f'/api/projects/{project.id}/', {
             "name": "Обновленный проект"
         })
-        assert r.status_code == 200
 
         r = self.client.get(f'/api/projects/{project.id}/')
         data = r.json()
@@ -300,6 +303,8 @@ class ProjectServicesViewsetTestCase(TestCase):
         self.client_profile.fio = "Тестовый сотрудник"
         self.client_profile.position = "Test"
         self.client_profile.save()
+
+        self.client.force_authenticate(user=self.user1)
     
     def tests_get_list(self):
         project = Project.objects.create(
@@ -322,7 +327,7 @@ class ProjectServicesViewsetTestCase(TestCase):
             notes="Тестовые примечания"
         )
         
-        r = self.client.get('/api/projects_services/')
+        r = self.client.get('/api/project_services/')
 
         data = r.json()
         print(data)
@@ -344,7 +349,7 @@ class ProjectServicesViewsetTestCase(TestCase):
             price=30000.0
         )
         
-        r = self.client.post("/api/projects_services/", {
+        r = self.client.post("/api/project_services/", {
             "project": project.id,
             "favour": favour.id,
             "employee_user": self.user2.id,
@@ -377,15 +382,15 @@ class ProjectServicesViewsetTestCase(TestCase):
 
         project_services = baker.make("ProjectService", 10, project=project, favour=favour, employee_user=self.user1)
         
-        r = self.client.get('/api/projects_services/')
+        r = self.client.get('/api/project_services/')
         data = r.json()
         
         assert len(data) == 10
 
         project_service_id_to_delete = project_services[3].id
-        self.client.delete(f'/api/projects_services/{project_service_id_to_delete}/')
+        self.client.delete(f'/api/project_services/{project_service_id_to_delete}/')
 
-        r = self.client.get('/api/projects_services/')
+        r = self.client.get('/api/project_services/')
         data = r.json()
         
         assert len(data) == 9
@@ -409,17 +414,17 @@ class ProjectServicesViewsetTestCase(TestCase):
         project_services = baker.make("ProjectService", 10, project=project, favour=favour, employee_user=self.user1)
         project_service: ProjectService = project_services[3]
 
-        r = self.client.get(f'/api/projects_services/{project_service.id}/')
+        r = self.client.get(f'/api/project_services/{project_service.id}/')
         data = r.json()
         assert data['notes'] == project_service.notes
         
-        r = self.client.patch(f'/api/projects_services/{project_service.id}/', {
+        r = self.client.patch(f'/api/project_services/{project_service.id}/', {
             "notes": "Обновленные примечания"
         })
         
         assert r.status_code == 200
 
-        r = self.client.get(f'/api/projects_services/{project_service.id}/')
+        r = self.client.get(f'/api/project_services/{project_service.id}/')
         data = r.json()
         assert data['notes'] == "Обновленные примечания"
 

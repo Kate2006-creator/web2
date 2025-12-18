@@ -26,15 +26,10 @@ class ProjectsViewset(mixins.ListModelMixin, mixins.CreateModelMixin, mixins.Des
     serializer_class = ProjectSerializer
 
     def get_queryset(self):
-        # Получаем текущего пользователя
         user = self.request.user
-        
-        # Проверяем, является ли пользователь администратором
         if user.is_staff:
-            # Админ видит все проекты
             return Project.objects.all()
         else:
-            # Клиент видит только свои проекты
             return Project.objects.filter(client_user=user)
 
     class StatsSerializer(serializers.Serializer):
@@ -67,13 +62,13 @@ class ProjectsViewset(mixins.ListModelMixin, mixins.CreateModelMixin, mixins.Des
     @action(detail=False, methods=["GET"], url_path="export_word")
     def export_to_word(self, request, *args, **kwargs):
     # Берем проекты как в get_queryset
-        queryset = self.get_queryset()  
+        queryset = self.get_queryset().select_related('client_user') 
     
         doc = WordExporter.export_to_word(
             data=queryset,
             title="Список проектов",
             headers=["ID", "Название", "Описание", "Статус", "Клиент"],
-            fields=["id", "name", "description", "status", "client_user__username"]
+            fields=["id", "name", "description", "status", "client_user"]
         )
     
         return WordExporter.create_http_response(doc, "проекты.docx")
@@ -122,18 +117,28 @@ class ProjectServicesViewset(mixins.ListModelMixin, mixins.CreateModelMixin, mix
     queryset = ProjectService.objects.all()
     serializer_class = ProjectServiceSerializer
 
+    def get_queryset(self):
+        user = self.request.user
+        
+        if user.is_staff:
+            # Админ видит все услуги в проектах
+            return ProjectService.objects.all()
+        else:
+            # Клиент видит только услуги в СВОИХ проектах
+            return ProjectService.objects.filter(project__client_user=user)
+
     @action(detail=False, methods=["GET"], url_path="export_word")
     def export_to_word(self, request, *args, **kwargs):
-        project_services = ProjectService.objects.select_related(
+        queryset = self.get_queryset().select_related(
             'project', 'favour', 'employee_user'
-        ).all()
-    
+        )
+
         doc = WordExporter.export_to_word(
-            data=project_services,
+            data=queryset,
             title="Список услуг в проектах",
             headers=["ID", "Проект", "Услуга", "Сотрудник", "Примечания"],
-            fields=["id", "project__name", "favour__name", "employee_user__first_name", "notes"]
-        )
+            fields=["id", "project", "favour", "employee_user", "notes"]
+    )
         
         return WordExporter.create_http_response(doc, "услуги_в_проектах.docx")
 
@@ -170,18 +175,6 @@ class ReviewsViewset(mixins.ListModelMixin, mixins.CreateModelMixin, mixins.Dest
         serializer = self.StatsSerializer(instance=stats)
         return Response(serializer.data)
     
-    @action(detail=False, methods=["GET"], url_path="export_word")
-    def export_to_word(self, request, *args, **kwargs):
-        reviews = Review.objects.select_related('pr').all()
-        
-        doc = WordExporter.export_to_word(
-            data=reviews,
-            title="Список отзывов",
-            headers=["ID", "Описание", "Оценка", "Проект"],
-            fields=["id", "description", "mark", "pr__name"]
-        )
-        
-        return WordExporter.create_http_response(doc, "отзывы.docx")
 
 class UserProfilesViewset(mixins.ListModelMixin, mixins.CreateModelMixin, mixins.DestroyModelMixin, mixins.RetrieveModelMixin, mixins.UpdateModelMixin, GenericViewSet):
     queryset = UserProfile.objects.all()

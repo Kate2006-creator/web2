@@ -21,9 +21,11 @@ class ProjectSerializer(serializers.ModelSerializer):
     
 
 class ReviewSerializer(serializers.ModelSerializer):
+    project_name = serializers.CharField(source='pr.name', read_only=True) 
+
     class Meta:
         model = Review 
-        fields = ['id','description', 'mark', 'pr', 'picture']
+        fields = ['id','description', 'mark', 'pr', 'picture','project_name']
 
 class FavourSerializer(serializers.ModelSerializer):
     class Meta:
@@ -31,9 +33,14 @@ class FavourSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'description', 'price']
 
 class ProjectServiceSerializer(serializers.ModelSerializer):
+    project_name = serializers.CharField(source='project.name', read_only=True)
+    favour_name = serializers.CharField(source='favour.name', read_only=True)
+    employee_fio = serializers.CharField(source='employee_user.profile.fio', read_only=True)
+    employee_position = serializers.CharField(source='employee_user.profile.position', read_only=True)
+    
     class Meta:
         model = ProjectService
-        fields = ['id', 'project', 'favour', 'employee_user', 'notes']
+        fields = ['id', 'project', 'favour', 'employee_user', 'notes', 'project_name', 'favour_name', 'employee_fio', 'employee_position']
 
 class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:

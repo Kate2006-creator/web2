@@ -2,6 +2,9 @@
 import axios from "axios"
 import { onMounted, ref, computed } from 'vue';
 import Cookies from 'js-cookie';
+import { useUserInfoStore } from "@/stores/user_info_store";
+import { useRouter } from 'vue-router';
+import { storeToRefs } from "pinia";
 
 const favours = ref([]);
 const favourToAdd = ref({
@@ -10,6 +13,8 @@ const favourToAdd = ref({
   price: 0,
 });
 const favourToEdit = ref({});
+
+const userInfoStore = useUserInfoStore()
 
 const stats = ref({
   total_count: 0,
@@ -21,6 +26,11 @@ const stats = ref({
 const wordExportUrl = computed(() => {
   return "/api/favours/export_word";
 });
+
+const {
+  is_staff
+} = storeToRefs(userInfoStore)
+
 
 axios.defaults.headers.common['X-CSRFToken'] = Cookies.get("csrftoken");
 
@@ -108,7 +118,7 @@ onMounted(async () => {
 
 <template>
   <div class="p-3">
-  <div class="mb-3">
+  <div class="mb-3" v-if="userInfoStore.is_staff">
   <h5>Статистика услуг</h5>
   <div class="d-flex gap-3 mb-4">
     <div class="badge bg-success p-2">
@@ -136,7 +146,7 @@ onMounted(async () => {
 
   <div class="p-3">
 
-    <div class="mb-3">
+    <div class="mb-3" v-if="userInfoStore.is_staff">
       <h3>Добавление услуги</h3>
       
       <div class="row mb-2">
@@ -196,7 +206,7 @@ onMounted(async () => {
               </p>
             </div>
             
-            <div>
+            <div v-if="userInfoStore.is_staff">
               <button class="btn btn-success btn-sm me-1" 
                       @click="onFavourEditClick(favour)" 
                       data-bs-toggle="modal" 

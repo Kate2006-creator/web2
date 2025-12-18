@@ -2,6 +2,9 @@
 import axios from "axios"
 import { onMounted, ref, computed } from 'vue';
 import Cookies from 'js-cookie';
+import { useUserInfoStore } from "@/stores/user_info_store";
+
+const userInfoStore = useUserInfoStore();
 
 const projectServices = ref([]);
 const projects = ref([]); 
@@ -25,7 +28,17 @@ axios.defaults.headers.common['X-CSRFToken'] = Cookies.get("csrftoken");
 async function fetchProjectServices() {
     const r = await axios.get("/api/project_services/");
     console.log('Услуги в проектах:', r.data);
-    projectServices.value = r.data;
+
+    if (!userInfoStore.is_staff) {
+            const projectsResponse = await axios.get("/api/projects/");
+            const clientProjectIds = projectsResponse.data.map(p => p.id);
+
+            projectServices.value = r.data.filter(service => 
+                clientProjectIds.includes(service.project)
+            );
+        } else {
+            projectServices.value = r.data;
+        }
 }
 
 async function fetchProjects() {
@@ -45,6 +58,11 @@ async function fetchFavours() {
 
 async function fetchEmployees() {
 
+  if (!userInfoStore.is_staff) {
+        employees.value = []; // Клиентам не нужен список сотрудников
+        return;
+    } 
+    
     const r = await axios.get("/api/user_profiles/");
     console.log('Профили:', r.data);
     
@@ -85,6 +103,12 @@ async function onProjectServiceAdd() {
       notes: projectServiceToAdd.value.notes || '',
     };
     
+    if (userInfoStore.is_staff) {
+        projectServiceData.employee_user = projectServiceToAdd.value.employee_user || null;
+    } else {
+        projectServiceData.employee_user = null; // Автоматически "Не назначен"
+    }
+
     const response = await axios.post("/api/project_services/", projectServiceData);
     
     projectServiceToAdd.value = {
@@ -129,6 +153,10 @@ async function onUpdateProjectService() {
       employee_user: projectServiceToEdit.value.employee_user || null,
       notes: projectServiceToEdit.value.notes || '',
     };
+
+    if (userInfoStore.is_staff) {
+        updateData.employee_user = projectServiceToEdit.value.employee_user || null;
+    }
     
     const response = await axios.patch(`/api/project_services/${projectServiceToEdit.value.id}/`, updateData);
     
@@ -136,35 +164,6 @@ async function onUpdateProjectService() {
     alert('Услуга в проекте обновлена!');
 }
 
-function getProjectName(projectId) {
-  if (!projectId) return 'Не указан';
-  
-  const project = projects.value.find(p => p.id === projectId);
-  return project.name;
-}
-
-function getFavourName(favourId) {
-  if (!favourId) return 'Не указана';
-  
-  const favour = favours.value.find(f => f.id === favourId);
-  return favour.name;
-}
-
-
-function getEmployeeName(employeeId) {
-  if (!employeeId) return 'Не назначен';
-  
-  const employee = employees.value.find(e => e.id === employeeId);
-  return employee.fio;
-}
-
-
-function getEmployeePosition(employeeId) {
-  if (!employeeId) return '';
-  
-  const employee = employees.value.find(e => e.id === employeeId);
-  return  employee.position;
-}
 
 onMounted(async () => {
   await Promise.all([
@@ -208,9 +207,10 @@ onMounted(async () => {
       </div>
 
       <div class="row mb-2">
-        <div class="col-md-6">
+        <div v-if="userInfoStore.is_staff" class="col-md-6">
           <label for="employee-select" class="form-label">Сотрудник</label>
           <select id="employee-select" v-model="projectServiceToAdd.employee_user" class="form-select">
+            <option value="">Не назначен</option>
             <option v-for="employee in employees" :key="employee.id" :value="employee.id">
               {{ employee.fio }} {{ `(${employee.position})`}}
             </option>
@@ -247,20 +247,20 @@ onMounted(async () => {
               <div class="row">
                 <div class="col-md-4">
                   <h6 class="mb-1">Проект:</h6>
-                  <p class="mb-2"><strong>{{ getProjectName(projectService.project) }}</strong></p>
+                  <p class="mb-2"><strong>{{ projectService.project_name}}</strong></p>
                 </div>
                 
                 <div class="col-md-4">
                   <h6 class="mb-1">Услуга:</h6>
-                  <p class="mb-2"><strong>{{ getFavourName(projectService.favour) }}</strong></p>
+                  <p class="mb-2"><strong>{{ projectService.favour_name }}</strong></p>
                 </div>
                 
                 <div class="col-md-4">
                   <h6 class="mb-1">Сотрудник:</h6>
                   <p class="mb-2">
-                    <strong>{{ getEmployeeName(projectService.employee_user) }}</strong>
-                    <span v-if="getEmployeePosition(projectService.employee_user)" class="text-muted small d-block">
-                      {{ getEmployeePosition(projectService.employee_user) }}
+                    <strong>{{ projectService.employee_fio }}</strong>
+                    <span class="text-muted small d-block">
+                      {{projectService.employee_position }}
                     </span>
                   </p>
                 </div>
@@ -325,10 +325,11 @@ onMounted(async () => {
             </div>
             
             <div class="row">
-              <div class="col-md-6">
+              <div v-if="userInfoStore.is_staff" class="col-md-6">
                 <div class="mb-3">
                   <label class="form-label">Сотрудник</label>
                   <select class="form-select" v-model="projectServiceToEdit.employee_user">
+                    <option value="">Не назначен</option>
                     <option v-for="employee in employees" :key="employee.id" :value="employee.id">
                       {{ employee.fio }} {{ `(${employee.position})`}}
                     </option>

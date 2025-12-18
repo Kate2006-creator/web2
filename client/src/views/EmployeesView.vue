@@ -2,6 +2,10 @@
 import axios from "axios"
 import { onMounted, ref, computed } from 'vue';
 import Cookies from 'js-cookie';
+import { useUserInfoStore } from "@/stores/user_info_store";
+import { storeToRefs } from "pinia";
+
+const userInfoStore = useUserInfoStore()
 
 const employees = ref([]);
 const employeeToAdd = ref({
@@ -23,6 +27,11 @@ const stats = ref({
 const wordExportUrl = computed(() => {
   return "/api/user_profiles/export_employees_word";
 });
+
+const {
+  is_staff
+} = storeToRefs(userInfoStore)
+
 
 axios.defaults.headers.common['X-CSRFToken'] = Cookies.get("csrftoken");
 
@@ -167,9 +176,18 @@ onMounted(async () => {
 </script>
 
 <template>
+   <div v-if="!userInfoStore.is_staff" class="p-3">
+    <div class="alert alert-danger text-center mt-5">
+      <h4>⛔ Доступ запрещен</h4>
+      <p>Страница "Сотрудники" доступна только администраторам.</p>
+      <button @click="$router.push('/')" class="btn btn-primary">
+        На главную
+      </button>
+    </div>
+  </div>
 
+  <div v-else> 
   <div class="p-3">
-    <!-- Статистика (простая) -->
     <div class="mb-3">
       <h5>Статистика пользователей</h5>
       <div class="d-flex flex-wrap gap-2 mb-3">
@@ -402,5 +420,6 @@ onMounted(async () => {
         </div>
       </div>
     </div>
+  </div>
   </div>
 </template>

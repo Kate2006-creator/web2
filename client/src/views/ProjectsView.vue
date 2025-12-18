@@ -11,7 +11,7 @@ const clients = ref([]); // Для списка клиентов
 const projectToAdd = ref({
   name: '',
   description: '',
-  status: '',
+  status: 'планирование',
   client_user: null,
 });
 const projectToEdit = ref({});
@@ -42,6 +42,10 @@ async function fetchStats() {
 }
 
 async function fetchClients() {
+   if (!userInfoStore.is_staff) {
+        clients.value = [];
+        return;
+    }
     const r = await axios.get("/api/user_profiles/");
     const clientProfiles = r.data.filter(profile => profile.user_type === 'client');
         
@@ -128,6 +132,11 @@ async function onUpdateProject() {
 
 // Получаем имя клиента по ID
 function getClientName(clientId) {
+
+  if (!userInfoStore.is_staff) {
+        return 'Клиент';
+    }
+    
     if (!clientId) return 'Не указан';
     
     const client = clients.value.find(c => c.id === clientId);

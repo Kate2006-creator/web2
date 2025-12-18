@@ -2,6 +2,7 @@
 import axios from "axios"
 import { onMounted, ref, computed } from 'vue';
 import Cookies from 'js-cookie';
+import { useRouter } from 'vue-router';
 import { useUserInfoStore } from "@/stores/user_info_store";
 import { storeToRefs } from "pinia";
 
@@ -22,6 +23,7 @@ const clientAddImageUrl = ref();
 const clientEditPictureRef = ref();
 const clientEditImageUrl = ref();
 const imageModalUrl = ref('');
+const router = useRouter();
 
 const wordExportUrl = computed(() => {
   return "/api/user_profiles/export_clients_word";
@@ -167,9 +169,9 @@ function openImageModal(imageUrl) {
 onMounted(async () => {
   await fetchClients();
   await fetchStats();
-   if (!userInfoStore.is_staff) {
-    router.push('/');
-  };
+   //if (!userInfoStore.is_staff) {
+   // router.push('/');
+  //};
 })
 </script>
 
@@ -178,7 +180,7 @@ onMounted(async () => {
  <div v-if="!userInfoStore.is_staff" class="p-3">
     <div class="alert alert-danger text-center mt-5">
       <h4>⛔ Доступ запрещен</h4>
-      <p>Страница "Клиент" доступна только администраторам.</p>
+      <p>Страница "Клиенты" доступна только администраторам.</p>
       <button @click="$router.push('/')" class="btn btn-primary">
         На главную
       </button>

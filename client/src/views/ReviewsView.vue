@@ -2,6 +2,9 @@
 import axios from "axios"
 import { onMounted, ref, computed } from 'vue';
 import Cookies from 'js-cookie';
+import { useUserInfoStore } from "@/stores/user_info_store";
+import { useRouter } from 'vue-router';
+import { storeToRefs } from "pinia";
 
 const reviews = ref([]);
 const projects = ref([]); 
@@ -22,9 +25,13 @@ const stats = ref({
   marks_distribution: {}  
 });
 
-const wordExportUrl = computed(() => {
-  return "/api/reviews/export_word";
-});
+const userInfoStore = useUserInfoStore()
+
+
+const {
+  is_staff
+} = storeToRefs(userInfoStore)
+
 
 axios.defaults.headers.common['X-CSRFToken'] = Cookies.get("csrftoken");
 
@@ -155,12 +162,6 @@ function openImageModal(imageUrl) {
 }
 
 
-function getProjectName(projectId) {
-  if (!projectId) return 'Не указан';
-  
-  const project = projects.value.find(p => p.id === projectId);
-  return project.name ;
-}
 
 function getStarRating(mark) {
   return '★'.repeat(mark) + '☆'.repeat(5 - mark);
@@ -183,7 +184,7 @@ onMounted(async () => {
           Всего отзывов: {{ stats.total_count}}
         </div>
         <div class="badge bg-success p-2 px-3">
-          Средняя оценка: {{ stats.avg_mark }}
+          Средняя оценка: {{ stats.avg_mark.toFixed(2)}}
         </div>
       </div>
       
@@ -200,11 +201,6 @@ onMounted(async () => {
       </div>
     </div>
 
-     <div class="d-flex flex-wrap gap-2">
-      <a :href="wordExportUrl" class="btn btn-success" target="_blank">
-        <i class="bi bi-file-earmark-word me-2"></i>Выгрузка инфо в WORD
-      </a>
-    </div>
 
     </div>
 
@@ -300,11 +296,11 @@ onMounted(async () => {
                 <strong>Описание:</strong> {{ item.description || ' - ' }}
               </div>
               <div>
-                <strong>Проект:</strong> {{ getProjectName(item.pr) }}
+                <strong>Проект:</strong> {{ item.project_name}}
               </div>
             </div>
           </div>
-          <div>
+          <div v-if="userInfoStore.is_staff">
             <button class="btn btn-success btn-sm me-1" @click="onReviewEditClick(item)" data-bs-toggle="modal" data-bs-target="#editReviewModal">
               <i class="bi bi-pencil-square"></i>
             </button>
