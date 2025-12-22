@@ -5,9 +5,6 @@ import EmployeesView from '../views/EmployeesView.vue';
 import ReviewsView from '../views/ReviewsView.vue';
 import FavoursView from '../views/FavoursView.vue';
 import ProjectServicesView from '../views/ProjectServicesView.vue';
-import Page0 from '@/pages/Page0.vue';
-import Page2 from '@/pages/Page2.vue';
-import Page3 from '@/pages/Page3.vue';
 import Login from '@/pages/Login.vue';
 import { useUserInfoStore } from '@/stores/user_info_store';
 
@@ -25,18 +22,6 @@ const router = createRouter({
       component: Login
     },
 
-    {
-      path: "/page0",
-      component: Page0
-    },
-    {
-      path: "/page2",
-      component: Page2
-    },
-    {
-      path: "/page3",
-      component: Page3
-    },
     {
       path: "/clients",
       name: "ClientsView",

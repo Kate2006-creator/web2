@@ -7,6 +7,7 @@ import { useRouter } from 'vue-router';
 import { storeToRefs } from "pinia";
 
 const favours = ref([]);
+const filteredFavours = ref([]); 
 const favourToAdd = ref({
   name: '',
   description: '',
@@ -23,6 +24,9 @@ const stats = ref({
   avg_price: 0
 });
 
+const priceFilter = ref('none'); // none, asc, desc
+const alphabetFilter = ref('none'); // none, asc
+
 const wordExportUrl = computed(() => {
   return "/api/favours/export_word";
 });
@@ -31,20 +35,40 @@ const {
   is_staff
 } = storeToRefs(userInfoStore)
 
-
 axios.defaults.headers.common['X-CSRFToken'] = Cookies.get("csrftoken");
 
-
 async function fetchFavours() {
-    const r = await axios.get("/api/favours/");
-    console.log('Услуги:', r.data);
+
+  const params = {};
   
-    favours.value = r.data;
+  if (priceFilter.value !== 'none') {
+    params.price_sort = priceFilter.value; // 'asc' или 'desc'
+  }
+  
+  if (alphabetFilter.value !== 'none') {
+    params.alphabet_sort = 'asc'; 
+  }
+  
+  const r = await axios.get("/api/favours/", { params });
+  
+  favours.value = r.data;
+  filteredFavours.value = r.data; 
 }
 
 async function fetchStats() {
     const r = await axios.get("/api/favours/stats/");
     stats.value = r.data;
+}
+
+function applyFilters() {
+  fetchFavours(); 
+}
+
+// Сброс фильтров
+function clearFilters() {
+  priceFilter.value = 'none';
+  alphabetFilter.value = 'none';
+  fetchFavours(); 
 }
 
 async function onFavourAdd() {
@@ -56,7 +80,7 @@ async function onFavourAdd() {
     const favourData = {
       name: favourToAdd.value.name,
       description: favourToAdd.value.description || '',
-      price: favourToAdd.price,
+      price: favourToAdd.value.price,
     };
     
     const response = await axios.post("/api/favours/", favourData);
@@ -67,7 +91,7 @@ async function onFavourAdd() {
       price: 0,
     };
   
-    await fetchFavours();
+    await fetchFavours(); 
     await fetchStats();
     
     alert('Услуга успешно добавлена!');
@@ -103,12 +127,10 @@ async function onUpdateFavour() {
     
     const response = await axios.patch(`/api/favours/${favourToEdit.value.id}/`, updateData);
 
-    await fetchFavours();
+    await fetchFavours(); 
     await fetchStats();
     alert('Услуга обновлена!');
 }
-
-
 
 onMounted(async () => {
   await fetchFavours();
@@ -178,26 +200,58 @@ onMounted(async () => {
       </button>
       <small class="form-text text-muted d-block mt-1">* - обязательные поля</small>
     </div>
+    
+    <div class="card mb-3">
+      <div class="card-header bg-light">
+        <h6 class="mb-0">Фильтры услуг</h6>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-4 mb-2">
+            <label class="form-label">Сортировка по цене</label>
+            <select v-model="priceFilter" class="form-select" @change="applyFilters">
+              <option value="none">Без сортировки</option>
+              <option value="asc">По возрастанию цены</option>
+              <option value="desc">По убыванию цены</option>
+            </select>
+          </div>
+          <div class="col-md-4 mb-2">
+            <label class="form-label">Сортировка по алфавиту</label>
+            <select v-model="alphabetFilter" class="form-select" @change="applyFilters">
+              <option value="none">Без сортировки</option>
+              <option value="asc">По алфавиту (А-Я)</option>
+            </select>
+          </div>
+          <div class="col-md-4 d-flex align-items-end">
+            <div>
+              <button @click="clearFilters" class="btn btn-secondary btn-sm">
+                Сбросить фильтры
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <div class="mb-3">
       <button @click="fetchFavours" class="btn btn-primary">Обновить список</button>
-      <span class="ms-2">Услуг: {{ favours.length }}</span>
+      <span class="ms-2">Услуг: {{ filteredFavours.length }}</span>
     </div>
 
     <div>
       <h5>Список услуг</h5>
-      <div v-if="favours.length === 0" class="text-muted">
+      <div v-if="filteredFavours.length == 0" class="text-muted">
         Услуг нет
       </div>
       <div v-else>
-        <div v-for="favour in favours" :key="favour.id" class="mb-2 p-3 border rounded">
+        <div v-for="favour in filteredFavours" :key="favour.id" class="mb-2 p-3 border rounded">
           <div class="d-flex justify-content-between align-items-start">
             <div>
               <h6 class="mb-1">{{ favour.name }}</h6>
               
               <div class="mb-2">
                 <span class="badge bg-success">
-                  {{ favour.price }}
+                  {{ favour.price }} ₽
                 </span>
               </div>
               
@@ -221,7 +275,6 @@ onMounted(async () => {
         </div>
       </div>
     </div>
-
 
     <div class="modal fade" id="editFavourModal" tabindex="-1">
       <div class="modal-dialog">

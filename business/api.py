@@ -22,15 +22,32 @@ from business.serializers import ProjectSerializer, ProjectServiceSerializer, Fa
 from business.word_exporter import WordExporter
 
 class ProjectsViewset(mixins.ListModelMixin, mixins.CreateModelMixin, mixins.DestroyModelMixin, mixins.RetrieveModelMixin, mixins.UpdateModelMixin, GenericViewSet):
+
     queryset = Project.objects.all()
     serializer_class = ProjectSerializer
 
     def get_queryset(self):
+        queryset = Project.objects.all()
         user = self.request.user
-        if user.is_staff:
-            return Project.objects.all()
-        else:
-            return Project.objects.filter(client_user=user)
+        
+        # Если пользователь не админ, показываем только его проекты
+        if not user.is_staff:
+            queryset = queryset.filter(client_user=user)
+        
+        client_id = self.request.query_params.get('client_id', None)
+        status = self.request.query_params.get('status', None)
+        
+        # Фильтруем по клиенту (только для админов)
+        if user.is_staff and client_id:
+            queryset = queryset.filter(client_user_id=client_id)
+        
+        # Фильтруем по статусу
+        if status:
+            queryset = queryset.filter(status=status)
+        
+        return queryset
+
+
 
     class StatsSerializer(serializers.Serializer):
         total_count = serializers.IntegerField()
@@ -73,10 +90,52 @@ class ProjectsViewset(mixins.ListModelMixin, mixins.CreateModelMixin, mixins.Des
     
         return WordExporter.create_http_response(doc, "проекты.docx")
 
+    @action(detail=False, methods=['GET'], url_path='filter')
+    def filter_projects(self, request):
+        queryset = self.get_queryset()
+        
+        # Фильтр по клиенту
+        client_id = request.query_params.get('client_id')
+        if client_id:
+            queryset = queryset.filter(client_user_id=client_id)
+        
+        # Фильтр по статусу
+        status = request.query_params.get('status')
+        if status:
+            queryset = queryset.filter(status=status)
+        
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+    
 
 class FavoursViewset(mixins.ListModelMixin, mixins.CreateModelMixin, mixins.DestroyModelMixin, mixins.RetrieveModelMixin, mixins.UpdateModelMixin, GenericViewSet):
     queryset = Favour.objects.all()
     serializer_class = FavourSerializer
+
+    def get_queryset(self):
+        queryset = Favour.objects.all()
+        
+        # Получаем параметры фильтрации из запроса
+        price_sort = self.request.query_params.get('price_sort', None)
+        alphabet_sort = self.request.query_params.get('alphabet_sort', None)
+        
+        # Применяем сортировку по цене
+        if price_sort == 'asc':
+            queryset = queryset.order_by('price')
+        elif price_sort == 'desc':
+            queryset = queryset.order_by('-price')
+        
+        # Применяем сортировку по алфавиту
+        if alphabet_sort == 'asc':
+            # Если уже есть сортировка по цене, добавляем вторую сортировку
+            if price_sort:
+                queryset = queryset.order_by('name', 'price' if price_sort == 'asc' else '-price')
+            else:
+                queryset = queryset.order_by('name')
+        
+        return queryset
+
+    
 
     class StatsSerializer(serializers.Serializer):
         total_count = serializers.IntegerField()
@@ -121,8 +180,20 @@ class ProjectServicesViewset(mixins.ListModelMixin, mixins.CreateModelMixin, mix
         user = self.request.user
         
         if user.is_staff:
-            # Админ видит все услуги в проектах
-            return ProjectService.objects.all()
+            queryset = ProjectService.objects.all()
+            
+            employee_user = self.request.query_params.get('employee_user', None)
+            project = self.request.query_params.get('project', None)
+            
+            # Фильтруем по сотруднику
+            if employee_user:
+                queryset = queryset.filter(employee_user_id=employee_user)
+            
+            # Фильтруем по проекту
+            if project:
+                queryset = queryset.filter(project_id=project)
+                
+            return queryset
         else:
             # Клиент видит только услуги в СВОИХ проектах
             return ProjectService.objects.filter(project__client_user=user)
@@ -147,10 +218,20 @@ class ReviewsViewset(mixins.ListModelMixin, mixins.CreateModelMixin, mixins.Dest
     queryset = Review.objects.all()
     serializer_class = ReviewSerializer
 
+    def get_queryset(self):
+        queryset = Review.objects.all()
+        
+        mark = self.request.query_params.get('mark', None)
+        
+        if mark and mark != 'all':
+            queryset = queryset.filter(mark=int(mark))
+        
+        return queryset
+
     class StatsSerializer(serializers.Serializer):
         total_count = serializers.IntegerField()
         avg_mark = serializers.FloatField()
-        marks_distribution = serializers.DictField()  # Добавляем распределение по оценкам
+        marks_distribution = serializers.DictField()  # Добавляю распределение по оценкам
     
     @action(detail=False, methods=["GET"], url_path="stats")
     def get_stats(self, request, *args, **kwargs):
@@ -159,7 +240,7 @@ class ReviewsViewset(mixins.ListModelMixin, mixins.CreateModelMixin, mixins.Dest
             avg_mark=Avg("mark"),
         )
         
-        marks_stats = Review.objects.values('mark').annotate(
+        marks_stats = Review.objects.values('mark').annotate( #читает количество записей (Count('id'))
             count=Count('id')
         ).order_by('mark')
         
@@ -187,14 +268,13 @@ class UserProfilesViewset(mixins.ListModelMixin, mixins.CreateModelMixin, mixins
     
     @action(detail=False, methods=["GET"], url_path="stats")
     def get_stats(self, request, *args, **kwargs):
-        from django.db.models import Count, Q
         
         stats = UserProfile.objects.aggregate(
             total_clients=Count('id', filter=Q(user_type='client')),
             total_employees=Count('id', filter=Q(user_type='employee')),
         )
         
-        employees_by_position = UserProfile.objects.filter(
+        employees_by_position = UserProfile.objects.filter( #С filter мы считаем только те записи, которые удовлетворяют условию
             user_type='employee',
             position__isnull=False
         ).exclude(position='').values('position').annotate(
@@ -292,22 +372,17 @@ class UsersViewset(mixins.ListModelMixin, mixins.CreateModelMixin, mixins.Destro
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
-  # ✅ ДОБАВИТЬ ЭТО: разрешение только для staff
-    permission_classes = [IsAuthenticated]  # или ваши текущие permissions
+  #  разрешение только для staff
+    permission_classes = [IsAuthenticated] 
     
     def get_queryset(self):
         user = self.request.user
-        
-        # ✅ ДОБАВИТЬ ПРОВЕРКУ: только админы видят всех пользователей
         if not user.is_staff:
-            # Обычные пользователи видят только себя
             return User.objects.filter(id=user.id)
         
-        # Админы видят всех
         return User.objects.all()
     
     def create(self, request, *args, **kwargs):
-        # ✅ ДОБАВИТЬ: только админы могут создавать пользователей через API
         if not request.user.is_staff:
             return Response(
                 {"error": "Только администраторы могут создавать пользователей"},
@@ -316,7 +391,6 @@ class UsersViewset(mixins.ListModelMixin, mixins.CreateModelMixin, mixins.Destro
         return super().create(request, *args, **kwargs)
     
     def destroy(self, request, *args, **kwargs):
-        # ✅ ДОБАВИТЬ: только админы могут удалять пользователей
         if not request.user.is_staff:
             return Response(
                 {"error": "Только администраторы могут удалять пользователей"},

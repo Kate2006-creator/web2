@@ -13,7 +13,7 @@ class WordExporter:
         table.style = 'Table Grid'
         
         for i, header in enumerate(headers): #enumerate - создает пары (индекс, значение):
-            #(0, 'Названия'), (1, 'ФИО') и тд
+            #(0, Названия), (1, ФИО) и тд
             table.rows[0].cells[i].text = header
         
         for item in data:

@@ -7,6 +7,7 @@ import { useRouter } from 'vue-router';
 import { storeToRefs } from "pinia";
 
 const reviews = ref([]);
+const filteredReviews = ref([]); 
 const projects = ref([]); 
 const reviewToAdd = ref({
   description: '',
@@ -25,19 +26,26 @@ const stats = ref({
   marks_distribution: {}  
 });
 
-const userInfoStore = useUserInfoStore()
+const starFilter = ref('all'); // 'all', '1', '2', '3', '4', '5'
 
+const userInfoStore = useUserInfoStore()
 
 const {
   is_staff
 } = storeToRefs(userInfoStore)
 
-
 axios.defaults.headers.common['X-CSRFToken'] = Cookies.get("csrftoken");
 
 async function fetchReviews() {
-  const r = await axios.get("/api/reviews/");
+  const params = {};
+  
+  if (starFilter.value !== 'all') {
+    params.mark = starFilter.value;
+  }
+  
+  const r = await axios.get("/api/reviews/", { params });
   reviews.value = r.data;
+  filteredReviews.value = r.data; 
 }
 
 async function fetchProjects() {
@@ -48,6 +56,17 @@ async function fetchProjects() {
 async function fetchStats() {
   const r = await axios.get("/api/reviews/stats/");
   stats.value = r.data;
+}
+
+
+function applyFilters() {
+  fetchReviews(); 
+}
+
+
+function clearFilters() {
+  starFilter.value = 'all';
+  fetchReviews(); 
 }
 
 async function onReviewAdd() {
@@ -85,7 +104,7 @@ async function onReviewAdd() {
     reviewPictureRef.value.value = '';
   }
   
-  await fetchReviews();
+  await fetchReviews(); 
   await fetchStats();
   
   alert('Отзыв успешно добавлен!');
@@ -107,7 +126,7 @@ function reviewEditPictureChange() {
 async function onRemoveReviewClick(review) {
   if (confirm(`Удалить отзыв с оценкой ${review.mark}?`)) {
     await axios.delete(`/api/reviews/${review.id}/`);
-    await fetchReviews();
+    await fetchReviews(); 
     await fetchStats();
     alert('Отзыв удален!');
   }
@@ -151,8 +170,8 @@ async function onUpdateReview() {
     }
   });
   
-  await fetchReviews();
-   await fetchStats();
+  await fetchReviews(); 
+  await fetchStats();
   alert('Отзыв обновлен!');
 }
 
@@ -160,8 +179,6 @@ async function onUpdateReview() {
 function openImageModal(imageUrl) {
   imageModalUrl.value = imageUrl;
 }
-
-
 
 function getStarRating(mark) {
   return '★'.repeat(mark) + '☆'.repeat(5 - mark);
@@ -200,11 +217,7 @@ onMounted(async () => {
         </div>
       </div>
     </div>
-
-
-    </div>
-
-
+</div>
 
   <div class="p-3">
     <div class="mb-3">
@@ -262,18 +275,47 @@ onMounted(async () => {
       <small class="form-text text-muted d-block mt-1">* - обязательные поля</small>
     </div>
 
+
+    <div class="card mb-3">
+      <div class="card-header bg-light">
+        <h6 class="mb-0">Фильтр отзывов по оценке</h6>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-6 mb-2">
+            <label class="form-label">Оценка (звезды)</label>
+            <select v-model="starFilter" class="form-select" @change="applyFilters">
+              <option value="all">Все отзывы</option>
+              <option value="5">★★★★★ - 5 звезд</option>
+              <option value="4">★★★★☆ - 4 звезды</option>
+              <option value="3">★★★☆☆ - 3 звезды</option>
+              <option value="2">★★☆☆☆ - 2 звезды</option>
+              <option value="1">★☆☆☆☆ - 1 звезда</option>
+            </select>
+          </div>
+          <div class="col-md-6 d-flex align-items-end">
+            <div>
+              <button @click="clearFilters" class="btn btn-secondary btn-sm">
+                Сбросить фильтр
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="mb-3">
       <button @click="fetchReviews" class="btn btn-primary">Обновить список</button>
-      <span class="ms-2">Отзывов: {{ reviews.length }}</span>
+      <span class="ms-2">Отзывов: {{ filteredReviews.length }}</span>
     </div>
     
  <div>
       <h5>Список отзывов</h5>
-      <div v-if="reviews.length === 0" class="text-muted">
+      <div v-if="filteredReviews.length == 0" class="text-muted">
         Отзывов нет
       </div>
       <div v-else>
-        <div v-for="item in reviews" :key="item.id" class="mb-2 p-2 border d-flex justify-content-between align-items-center">
+        <div v-for="item in filteredReviews" :key="item.id" class="mb-2 p-2 border d-flex justify-content-between align-items-center">
           <div class="d-flex align-items-center">
             <div v-if="item.picture" class="me-3">
               <img 
@@ -311,7 +353,6 @@ onMounted(async () => {
         </div>
       </div>
     </div>
-
 
     <div class="modal fade" id="editReviewModal" tabindex="-1">
       <div class="modal-dialog">
@@ -412,7 +453,6 @@ onMounted(async () => {
         </div>
       </div>
     </div>
-
 
     <div class="modal fade" id="imageModal" tabindex="-1">
       <div class="modal-dialog modal-lg">

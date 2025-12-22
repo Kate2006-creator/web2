@@ -43,7 +43,7 @@ axios.defaults.headers.common['X-CSRFToken'] = Cookies.get("csrftoken");
 async function fetchClients() {
     const r = await axios.get("/api/user_profiles/")  
     console.log(r.data)
-    clients.value = r.data.filter(profile => profile.user_type === 'client');
+    clients.value = r.data.filter(profile => profile.user_type == 'client');
 }
 
 async function fetchStats() {
@@ -63,7 +63,7 @@ async function onClientAdd() {
     let profiles = [];
     profiles = profilesResponse.data;    
   
-    const userProfile = profiles.find(profile => profile.user === userId);
+    const userProfile = profiles.find(profile => profile.user == userId);
     const profileId = userProfile.id;
     
     //Обновляем профиль
@@ -179,7 +179,7 @@ onMounted(async () => {
 
  <div v-if="!userInfoStore.is_staff" class="p-3">
     <div class="alert alert-danger text-center mt-5">
-      <h4>⛔ Доступ запрещен</h4>
+      <h4> Доступ запрещен</h4>
       <p>Страница "Клиенты" доступна только администраторам.</p>
       <button @click="$router.push('/')" class="btn btn-primary">
         На главную
@@ -266,7 +266,7 @@ onMounted(async () => {
 
     <div>
       <h5>Список клиентов</h5>
-      <div v-if="clients.length === 0" class="text-muted">
+      <div v-if="clients.length == 0" class="text-muted">
         Клиентов нет
       </div>
       <div v-else>
@@ -285,9 +285,9 @@ onMounted(async () => {
               >
             </div>
             <div>
-              <strong>ФИО:</strong> {{ item.fio || ' - ' }}
-              <span v-if="item.company_name"> | <strong>Компания:</strong> {{ item.company_name }}</span>
-              <span v-if="item.birthday"> | <strong>Дата рождения:</strong> {{ item.birthday }}</span>
+              <strong>ФИО:</strong> {{ item.fio }}
+              <div v-if="item.company_name"> | <strong>Компания:</strong> {{ item.company_name }}</div>
+              <div v-if="item.birthday"> | <strong>Дата рождения:</strong> {{ item.birthday }}</div>
             </div>
           </div>
           <div>

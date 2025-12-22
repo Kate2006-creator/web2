@@ -7,7 +7,8 @@ import { storeToRefs } from "pinia";
 
 const userInfoStore = useUserInfoStore()
 const projects = ref([]);
-const clients = ref([]); // Для списка клиентов
+const filteredProjects = ref([]);
+const clients = ref([]); 
 const projectToAdd = ref({
   name: '',
   description: '',
@@ -19,6 +20,10 @@ const stats = ref({
   total_count: 0,
   by_status: {}
 });
+const filters = ref({
+  client_id: '',
+  status: ''
+});
 const wordExportUrl = computed(() => { //реактивная функция, вычисляетя динамически при каждом обращении
   return "/api/projects/export_word";
 });
@@ -27,13 +32,22 @@ const {
   is_staff
 } = storeToRefs(userInfoStore)
 
-
 axios.defaults.headers.common['X-CSRFToken'] = Cookies.get("csrftoken");
 
 async function fetchProjects() {
-        const r = await axios.get("/api/projects/");
-        projects.value = r.data;
+  const params = {};
 
+  if (userInfoStore.is_staff && filters.value.client_id) {
+    params.client_id = filters.value.client_id;
+  }
+  
+  if (filters.value.status) {
+    params.status = filters.value.status;
+  }
+  
+  const r = await axios.get("/api/projects/", { params });
+  projects.value = r.data;
+  filteredProjects.value = r.data; 
 }
 
 async function fetchStats() {
@@ -47,7 +61,7 @@ async function fetchClients() {
         return;
     }
     const r = await axios.get("/api/user_profiles/");
-    const clientProfiles = r.data.filter(profile => profile.user_type === 'client');
+    const clientProfiles = r.data.filter(profile => profile.user_type == 'client');
         
     clients.value = await Promise.all( 
         clientProfiles.map(async (profile) => { //для каждого профиля в  clientProfiles запускаем асинхронную функцию
@@ -62,9 +76,20 @@ async function fetchClients() {
                     };
             })
         );
-      
 }
 
+function applyFilters() {
+  fetchProjects(); 
+}
+
+
+function clearFilters() {
+  filters.value = {
+    client_id: '',
+    status: ''
+  };
+  fetchProjects(); 
+}
 
 async function onProjectAdd() {
         // Проверяем обязательные поля
@@ -83,7 +108,7 @@ async function onProjectAdd() {
         projectToAdd.value = {
             name: '',
             description: '',
-            status: '',
+            status: 'планирование',
             client_user: null,
         };
         
@@ -91,13 +116,12 @@ async function onProjectAdd() {
         await fetchStats();
         
         alert('Проект успешно добавлен!');   
-    }
-
+}
 
 async function onRemoveProject(project) {
     if (confirm(`Удалить проект "${project.name}"?`)) {
             await axios.delete(`/api/projects/${project.id}/`);
-            await fetchProjects();
+            await fetchProjects(); 
             await fetchStats();
             alert('Проект удален!');
     }
@@ -127,20 +151,6 @@ async function onUpdateProject() {
         await fetchProjects();
         await fetchStats();
         alert('Проект обновлен!');
-    
-}
-
-// Получаем имя клиента по ID
-function getClientName(clientId) {
-
-  if (!userInfoStore.is_staff) {
-        return 'Клиент';
-    }
-    
-    if (!clientId) return 'Не указан';
-    
-    const client = clients.value.find(c => c.id === clientId);
-    return client?.fio;
 }
 
 const projectStatuses = [
@@ -231,63 +241,103 @@ onMounted(async () => {
       <small class="form-text text-muted d-block mt-1">* - обязательные поля</small>
     </div>
 
-    <div class="mb-3">
-      <button @click="fetchProjects" class="btn btn-primary">Обновить список</button>
-      <span class="ms-2">Проектов: {{ projects.length }}</span>
-    </div>
-    
-    <!-- Список проектов -->
-<div>
-  <h5>{{ userInfoStore.is_staff ? 'Все проекты' : 'Мои проекты' }}</h5>
-
-  <div v-if="projects.length === 0" class="text-muted">
-    <span v-if="userInfoStore.is_staff">Проектов нет в системе</span>
-    <span v-else>У вас пока нет проектов</span>
-  </div>
-  
-  <div v-else>
-    <div v-for="project in projects" :key="project.id" class="mb-2 p-3 border rounded">
-      <div class="d-flex justify-content-between align-items-start">
-        <div>
-          <h6 class="mb-1">{{ project.name }}</h6>
-          <div class="mb-2">
-            <span class="badge" :class="{
-              'bg-secondary': project.status === 'планирование',
-              'bg-primary': project.status === 'в работе',
-              'bg-warning': project.status === 'приостановлен',
-              'bg-success': project.status === 'завершен',
-              'bg-danger': project.status === 'отменен',
-            }">
-              {{ project.status }}
-            </span>
+    <div class="card mb-3">
+      <div class="card-header bg-light">
+        <h6 class="mb-0">Фильтры проектов</h6>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div v-if="userInfoStore.is_staff" class="col-md-4 mb-2">
+            <label class="form-label">Клиент</label>
+            <select v-model="filters.client_id" class="form-select" @change="applyFilters">
+              <option value="">Все клиенты</option>
+              <option v-for="client in clients" :key="client.id" :value="client.id">
+                ({{ client.fio }})
+              </option>
+            </select>
           </div>
           
-          <p class="mb-1 text-muted" v-if="project.description">
-            {{ project.description }}
-          </p>
-          
-          <div v-if="userInfoStore.is_staff" class="text-muted small">
-            <strong>Клиент:</strong> {{ getClientName(project.client_user) }}
+          <div :class="userInfoStore.is_staff ? 'col-md-4' : 'col-md-8'">
+            <label class="form-label">Статус</label>
+            <select v-model="filters.status" class="form-select" @change="applyFilters">
+              <option value="">Все статусы</option>
+              <option value="планирование">Планирование</option>
+              <option value="в работе">В работе</option>
+              <option value="приостановлен">Приостановлен</option>
+              <option value="завершен">Завершен</option>
+              <option value="отменен">Отменен</option>
+            </select>
           </div>
-        </div>
-        
-        <div>
-          <button class="btn btn-success btn-sm me-1" 
-                  @click="onProjectEditClick(project)" 
-                  data-bs-toggle="modal" 
-                  data-bs-target="#editProjectModal">
-            <i class="bi bi-pencil-square"></i>
-          </button>
-          <button class="btn btn-danger btn-sm" @click="onRemoveProject(project)">
-            <i class="bi bi-trash3"></i>
-          </button>
+          
+          <div :class="userInfoStore.is_staff ? 'col-md-4' : 'col-md-4'" class="d-flex align-items-end">
+            <div>
+              <button @click="clearFilters" class="btn btn-secondary btn-sm">
+                Сбросить фильтры
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-</div>
 
-    <!-- Модальное окно редактирования проекта -->
+    <div class="mb-3">
+      <button @click="fetchProjects" class="btn btn-primary">Обновить список</button>
+      <span class="ms-2">
+        {{ userInfoStore.is_staff ? 'Всего проектов:' : 'Мои проекты:' }} 
+        {{ filteredProjects.length }}
+      </span>
+    </div>
+
+
+    <div>
+      <h5>{{ userInfoStore.is_staff ? 'Список проектов' : 'Мои проекты' }}</h5>
+      <div v-if="filteredProjects.length == 0" class="text-muted">
+        <span v-if="userInfoStore.is_staff">Проектов нет в системе</span>
+        <span v-else>У вас пока нет проектов</span>
+      </div>
+      <div v-else>
+        <div v-for="project in filteredProjects" :key="project.id" class="mb-2 p-3 border rounded">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <h6 class="mb-1">{{ project.name }}</h6>
+              <div class="mb-2">
+                <span class="badge" :class="{
+                  'bg-secondary': project.status == 'планирование',
+                  'bg-primary': project.status == 'в работе',
+                  'bg-warning': project.status == 'приостановлен',
+                  'bg-success': project.status == 'завершен',
+                  'bg-danger': project.status == 'отменен',
+                }">
+                  {{ project.status }}
+                </span>
+              </div>
+              
+              <p class="mb-1 text-muted" v-if="project.description">
+                {{ project.description }}
+              </p>
+              
+              <div v-if="userInfoStore.is_staff" class="text-muted small mt-2">
+                <strong>Клиент:</strong> 
+                {{ project.client_fio }}
+              </div>
+            </div>
+            
+            <div>
+              <button class="btn btn-success btn-sm me-1" 
+                      @click="onProjectEditClick(project)" 
+                      data-bs-toggle="modal" 
+                      data-bs-target="#editProjectModal">
+                <i class="bi bi-pencil-square"></i>
+              </button>
+              <button class="btn btn-danger btn-sm" @click="onRemoveProject(project)">
+                <i class="bi bi-trash3"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="modal fade" id="editProjectModal" tabindex="-1">
       <div class="modal-dialog">
         <div class="modal-content">
@@ -319,6 +369,7 @@ onMounted(async () => {
             <div v-if="userInfoStore.is_staff" class="mb-3">
           <label class="form-label">Клиент</label>
           <select class="form-select" v-model="projectToEdit.client_user">
+            <option :value="null">Не выбран</option>
             <option v-for="client in clients" :key="client.id" :value="client.id">
               {{ client.fio}}
             </option>

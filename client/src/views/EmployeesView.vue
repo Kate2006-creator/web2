@@ -178,10 +178,10 @@ onMounted(async () => {
 <template>
    <div v-if="!userInfoStore.is_staff" class="p-3">
     <div class="alert alert-danger text-center mt-5">
-      <h4>⛔ Доступ запрещен</h4>
+      <h4>Доступ запрещен</h4>
       <p>Страница "Сотрудники" доступна только администраторам.</p>
-      <button @click="$router.push('/')" class="btn btn-primary">
-        На главную
+      <button @click="$router.push('/reviews')" class="btn btn-primary">
+        На отзывы
       </button>
     </div>
   </div>
@@ -294,7 +294,7 @@ onMounted(async () => {
               >
             </div>
             <div>
-              <strong>ФИО:</strong> {{ item.fio || ' - ' }}
+              <strong>ФИО:</strong> {{ item.fio}}
               <span v-if="item.position"> | <strong>Должность:</strong> {{ item.position }}</span>
               <span v-if="item.birthday"> | <strong>Дата рождения:</strong> {{ item.birthday }}</span>
             </div>

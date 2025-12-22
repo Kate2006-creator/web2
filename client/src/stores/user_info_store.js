@@ -23,7 +23,7 @@ export const useUserInfoStore = defineStore("userInfoStore", () => {
         axios.defaults.headers.common['X-CSRFToken'] = Cookies.get("csrftoken");
 
         if (is_authenticated.value){
-            router.push(router.currentRoute.value.query.next || '/clients')
+            router.push(router.currentRoute.value.query.next || '/reviews')
         }
     }
     

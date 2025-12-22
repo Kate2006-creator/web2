@@ -7,6 +7,7 @@ import { useUserInfoStore } from "@/stores/user_info_store";
 const userInfoStore = useUserInfoStore();
 
 const projectServices = ref([]);
+const filteredProjectServices = ref([]); 
 const projects = ref([]); 
 const favours = ref([]); 
 const employees = ref([]); 
@@ -17,118 +18,139 @@ const projectServiceToAdd = ref({
   notes: '',
 });
 const projectServiceToEdit = ref({});
+
+const employeeFilter = ref(''); 
+const projectFilter = ref(''); 
+
 const wordExportUrl = computed(() => {
   return "/api/project_services/export_word";
 });
 
-
 axios.defaults.headers.common['X-CSRFToken'] = Cookies.get("csrftoken");
 
-
 async function fetchProjectServices() {
-    const r = await axios.get("/api/project_services/");
-    console.log('Услуги в проектах:', r.data);
+  const params = {};
+  
+  if (userInfoStore.is_staff) {
+    if (employeeFilter.value) {
+      params.employee_user = employeeFilter.value;
+    }
+    
+    if (projectFilter.value) {
+      params.project = projectFilter.value;
+    }
+  }
+  
+  const r = await axios.get("/api/project_services/", { params });
+  console.log('Услуги в проектах:', r.data);
 
-    if (!userInfoStore.is_staff) {
-            const projectsResponse = await axios.get("/api/projects/");
-            const clientProjectIds = projectsResponse.data.map(p => p.id);
+  if (!userInfoStore.is_staff) {
+    const projectsResponse = await axios.get("/api/projects/");
+    const clientProjectIds = projectsResponse.data.map(p => p.id);
 
-            projectServices.value = r.data.filter(service => 
-                clientProjectIds.includes(service.project)
-            );
-        } else {
-            projectServices.value = r.data;
-        }
+    projectServices.value = r.data.filter(service => 
+      clientProjectIds.includes(service.project)
+    );
+  } else {
+    projectServices.value = r.data;
+  }
+  
+  filteredProjectServices.value = projectServices.value;
 }
 
 async function fetchProjects() {
-  
-    const r = await axios.get("/api/projects/");
-    console.log('Проекты:', r.data);
-  
-    projects.value = r.data;
+  const r = await axios.get("/api/projects/");
+  console.log('Проекты:', r.data);
+  projects.value = r.data;
 }
 
-
 async function fetchFavours() {
-    const r = await axios.get("/api/favours/");
-    console.log('Услуги:', r.data);
-    favours.value = r.data;
+  const r = await axios.get("/api/favours/");
+  console.log('Услуги:', r.data);
+  favours.value = r.data;
 }
 
 async function fetchEmployees() {
-
   if (!userInfoStore.is_staff) {
-        employees.value = []; // Клиентам не нужен список сотрудников
-        return;
-    } 
-    
-    const r = await axios.get("/api/user_profiles/");
-    console.log('Профили:', r.data);
-    
-    let profiles = [];
-    profiles = r.data;
+    employees.value = []; 
+    return;
+  } 
+  
+  const r = await axios.get("/api/user_profiles/");
+  console.log('Профили:', r.data);
+  
+  let profiles = [];
+  profiles = r.data;
 
-    const employeeProfiles = profiles.filter(profile => profile.user_type === 'employee');
-    
-    employees.value = await Promise.all(
-      employeeProfiles.map(async (profile) => {
-          const userResponse = await axios.get(`/api/users/${profile.user}/`);
-          return {
-            id: profile.user, // ID пользователя
-            profile_id: profile.id,
-            fio: profile.fio || 'Без имени',
-            position: profile.position || '',
-            email: userResponse.data.email || '',
-            username: userResponse.data.username,
-          };
-      })
-    );
-    
-    console.log('Сотрудники для выбора:', employees.value);
+  const employeeProfiles = profiles.filter(profile => profile.user_type == 'employee');
+  
+  employees.value = await Promise.all(
+    employeeProfiles.map(async (profile) => {
+      const userResponse = await axios.get(`/api/users/${profile.user}/`);
+      return {
+        id: profile.user, 
+        profile_id: profile.id,
+        fio: profile.fio || 'Без имени',
+        position: profile.position || '',
+        email: userResponse.data.email || '',
+        username: userResponse.data.username,
+      };
+    })
+  );
+  
+  console.log('Сотрудники для выбора:', employees.value);
+}
+
+
+function applyFilters() {
+  fetchProjectServices(); 
+}
+
+
+function clearFilters() {
+  employeeFilter.value = '';
+  projectFilter.value = '';
+  fetchProjectServices(); 
 }
 
 
 async function onProjectServiceAdd() {
+  if (!projectServiceToAdd.value.project || !projectServiceToAdd.value.favour) {
+    alert('Выберите проект и услугу');
+    return;
+  }
 
-    if (!projectServiceToAdd.value.project || !projectServiceToAdd.value.favour) {
-      alert('Выберите проект и услугу');
-      return;
-    }
+  const projectServiceData = {
+    project: projectServiceToAdd.value.project,
+    favour: projectServiceToAdd.value.favour,
+    employee_user: projectServiceToAdd.value.employee_user || null,
+    notes: projectServiceToAdd.value.notes || '',
+  };
+  
+  if (userInfoStore.is_staff) {
+    projectServiceData.employee_user = projectServiceToAdd.value.employee_user || null;
+  } else {
+    projectServiceData.employee_user = null; 
+  }
 
-    const projectServiceData = {
-      project: projectServiceToAdd.value.project,
-      favour: projectServiceToAdd.value.favour,
-      employee_user: projectServiceToAdd.value.employee_user || null,
-      notes: projectServiceToAdd.value.notes || '',
-    };
-    
-    if (userInfoStore.is_staff) {
-        projectServiceData.employee_user = projectServiceToAdd.value.employee_user || null;
-    } else {
-        projectServiceData.employee_user = null; // Автоматически "Не назначен"
-    }
-
-    const response = await axios.post("/api/project_services/", projectServiceData);
-    
-    projectServiceToAdd.value = {
-      project: null,
-      favour: null,
-      employee_user: null,
-      notes: '',
-    };
-    
-    await fetchProjectServices();
-    
-    alert('Услуга успешно добавлена в проект!');
-    
-  } 
+  const response = await axios.post("/api/project_services/", projectServiceData);
+  
+  projectServiceToAdd.value = {
+    project: null,
+    favour: null,
+    employee_user: null,
+    notes: '',
+  };
+  
+  await fetchProjectServices();
+  alert('Услуга успешно добавлена в проект!');
+} 
 
 async function onRemoveProjectService(projectService) {
   if (confirm(`Удалить услугу из проекта?`)) {  
     await axios.delete(`/api/project_services/${projectService.id}/`);
     await fetchProjectServices();
-      alert('Услуга удалена из проекта!');
+    alert('Услуга удалена из проекта!');
   }
 }
 
@@ -145,25 +167,23 @@ function onProjectServiceEditClick(projectService) {
   };
 }
 
-
 async function onUpdateProjectService() {
-     const updateData = {
-      project: projectServiceToEdit.value.project,
-      favour: projectServiceToEdit.value.favour,
-      employee_user: projectServiceToEdit.value.employee_user || null,
-      notes: projectServiceToEdit.value.notes || '',
-    };
+  const updateData = {
+    project: projectServiceToEdit.value.project,
+    favour: projectServiceToEdit.value.favour,
+    employee_user: projectServiceToEdit.value.employee_user || null,
+    notes: projectServiceToEdit.value.notes || '',
+  };
 
-    if (userInfoStore.is_staff) {
-        updateData.employee_user = projectServiceToEdit.value.employee_user || null;
-    }
-    
-    const response = await axios.patch(`/api/project_services/${projectServiceToEdit.value.id}/`, updateData);
-    
-    await fetchProjectServices();
-    alert('Услуга в проекте обновлена!');
+  if (userInfoStore.is_staff) {
+    updateData.employee_user = projectServiceToEdit.value.employee_user || null;
+  }
+  
+  const response = await axios.patch(`/api/project_services/${projectServiceToEdit.value.id}/`, updateData);
+  
+  await fetchProjectServices();
+  alert('Услуга в проекте обновлена!');
 }
-
 
 onMounted(async () => {
   await Promise.all([
@@ -177,7 +197,7 @@ onMounted(async () => {
 
 <template>
   <div class="p-3">
-     <div class="d-flex gap-3 mb-2">
+    <div class="d-flex gap-3 mb-2">
       <a :href="wordExportUrl" class="btn btn-success" target="_blank">
         <i class="bi bi-file-earmark-word me-2"></i>Выгрузка инфо в WORD
       </a>
@@ -230,18 +250,55 @@ onMounted(async () => {
       <small class="form-text text-muted d-block mt-1">* - обязательные поля</small>
     </div>
 
+    <div v-if="userInfoStore.is_staff" class="card mb-3">
+      <div class="card-header bg-light">
+        <h6 class="mb-0">Фильтры услуг в проектах</h6>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-4 mb-2">
+            <label class="form-label">Сотрудник</label>
+            <select v-model="employeeFilter" class="form-select" @change="applyFilters">
+              <option value="">Все сотрудники</option>
+              <option v-for="employee in employees" :key="employee.id" :value="employee.id">
+                {{ employee.fio }} 
+              </option>
+            </select>
+          </div>
+          
+          <div class="col-md-4 mb-2">
+            <label class="form-label">Проект</label>
+            <select v-model="projectFilter" class="form-select" @change="applyFilters">
+              <option value="">Все проекты</option>
+              <option v-for="project in projects" :key="project.id" :value="project.id">
+                {{ project.name }}
+              </option>
+            </select>
+          </div>
+          
+          <div class="col-md-4 d-flex align-items-end">
+            <div>
+              <button @click="clearFilters" class="btn btn-secondary btn-sm">
+                Сбросить фильтры
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="mb-3">
       <button @click="fetchProjectServices" class="btn btn-primary">Обновить список</button>
-      <span class="ms-2">Услуг в проектах: {{ projectServices.length }}</span>
+      <div class="ms-2">Услуг в проектах: {{ filteredProjectServices.length }}</div>
     </div>
     
     <div>
       <h5>Услуги в проектах</h5>
-      <div v-if="projectServices.length === 0" class="text-muted">
+      <div v-if="filteredProjectServices.length == 0" class="text-muted">
         Услуг в проектах нет
       </div>
       <div v-else>
-        <div v-for="projectService in projectServices" :key="projectService.id" class="mb-3 p-3 border rounded">
+        <div v-for="projectService in filteredProjectServices" :key="projectService.id" class="mb-3 p-3 border rounded">
           <div class="d-flex justify-content-between align-items-start">
             <div class="flex-grow-1">
               <div class="row">
@@ -257,12 +314,12 @@ onMounted(async () => {
                 
                 <div class="col-md-4">
                   <h6 class="mb-1">Сотрудник:</h6>
-                  <p class="mb-2">
+                  <div class="mb-2">
                     <strong>{{ projectService.employee_fio }}</strong>
-                    <span class="text-muted small d-block">
+                    <div class="text-muted small d-block">
                       {{projectService.employee_position }}
-                    </span>
-                  </p>
+                    </div>
+                  </div>
                 </div>
               </div>
               

@@ -5,10 +5,11 @@ from business.models import Project, Review, Favour, ProjectService
 from general.models import UserProfile
 
 class ProjectSerializer(serializers.ModelSerializer):
-    
+    client_fio = serializers.CharField(source='client_user.profile.fio', read_only=True)
+
     class Meta:
         model = Project
-        fields = ['id', 'name', 'description', 'status', 'client_user']
+        fields = ['id', 'name', 'description', 'status', 'client_user', 'client_fio']
 
     def create(self, validated_data, *args, **kwargs):
         user = self.context['request'].user
@@ -55,7 +56,6 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = ['id', 'username', 'password','email', 'first_name', 'last_name']
 
-# ВОТ С ЭТИМ РАЗОБРАТЬСЯ!!!!
     def create(self, validated_data):
         # Получаем пароль из данных
         password = validated_data.pop('password', None)
@@ -63,23 +63,10 @@ class UserSerializer(serializers.ModelSerializer):
         # Создаем пользователя
         user = User.objects.create(**validated_data)
         
-        # Устанавливаем и хэшируем пароль
+        # Устанавливаем пароль
         if password:
             user.set_password(password)
             user.save()
         
         return user
     
-    def update(self, instance, validated_data):
-        # Если в данных есть пароль - обновляем его
-        password = validated_data.pop('password', None)
-        
-        if password:
-            instance.set_password(password)
-        
-        # Обновляем остальные поля
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-        
-        instance.save()
-        return instance
