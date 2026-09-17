@@ -3,3 +3,4 @@ djangorestframework==3.16.1
 pytest-django==4.11.1
 Faker==38.2.0
 python-docx
+Pillow
