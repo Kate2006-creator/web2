@@ -11,10 +11,10 @@ pipeline {
         stage('Prepare Python env') {
             steps {
                 bat '''
-                    python -m venv venv
+                    "C:\\Users\\Tecno\\AppData\\Local\\Programs\\Python\\Python312\\python.exe" -m venv venv
                     call venv\\Scripts\\activate.bat
-                    python -m pip install --upgrade pip
-                    pip install -r requirements.txt
+                    venv\\Scripts\\python.exe -m pip install --upgrade pip
+                    venv\\Scripts\\python.exe -m pip install -r requirements.txt
                 '''
             }
         }
@@ -22,8 +22,7 @@ pipeline {
         stage('Install dependencies') {
             steps {
                 bat '''
-                    call venv\\Scripts\\activate.bat
-                    pip list
+                    venv\\Scripts\\python.exe -m pip list
                 '''
             }
         }
@@ -31,8 +30,7 @@ pipeline {
         stage('Django checks') {
             steps {
                 bat '''
-                    call venv\\Scripts\\activate.bat
-                    python manage.py check
+                    venv\\Scripts\\python.exe manage.py check
                 '''
             }
         }
@@ -40,8 +38,7 @@ pipeline {
         stage('Run tests') {
             steps {
                 bat '''
-                    call venv\\Scripts\\activate.bat
-                    pytest --maxfail=1 --disable-warnings -q --junitxml=report.xml
+                    venv\\Scripts\\python.exe -m pytest --maxfail=1 --disable-warnings -q --junitxml=report.xml
                 '''
             }
         }
@@ -49,13 +46,19 @@ pipeline {
 
     post {
         always {
-            junit 'report.xml'
+            script {
+                if (fileExists('report.xml')) {
+                    junit 'report.xml'
+                } else {
+                    echo '⚠️ report.xml не найден — pytest не создал отчёт.'
+                }
+            }
         }
         success {
             echo ' CI ок.'
         }
         failure {
-            echo 'CI упал.'
+            echo ' CI упал.'
         }
     }
 }
