@@ -6,6 +6,7 @@ from business.models import Project, Review, Favour, ProjectService
 from model_bakery import baker
 
 # Create your tests here.
+# триггееееррррр
 
 class ProjectsViewsetTestCase(TestCase):
     def setUp(self):
