@@ -7,6 +7,7 @@ from model_bakery import baker
 
 # Create your tests here.
 # триггееееррррр
+# trigger merge
 
 class ProjectsViewsetTestCase(TestCase):
     def setUp(self):
