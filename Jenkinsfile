@@ -34,7 +34,7 @@ pipeline {
             steps {
                 bat '''
                     start /B venv\\Scripts\\python.exe manage.py runserver 8000 > django.log 2>&1
-                    timeout /t 5 /nobreak
+                    C:\\Windows\\System32\\timeout.exe /t 5 /nobreak
                     echo Django запущен на http://localhost:8000/
                 '''
             }
