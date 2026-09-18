@@ -3,16 +3,13 @@ pipeline {
 
     stages {
         stage('Checkout') {
-            steps {
-                checkout scm
-            }
+            steps { checkout scm }
         }
 
         stage('Подготовить среду Python') {
             steps {
                 bat '''
                     "C:\\Users\\Tecno\\AppData\\Local\\Programs\\Python\\Python312\\python.exe" -m venv venv
-                    call venv\\Scripts\\activate.bat
                     venv\\Scripts\\python.exe -m pip install --upgrade pip
                     venv\\Scripts\\python.exe -m pip install -r requirements.txt
                 '''
@@ -21,24 +18,42 @@ pipeline {
 
         stage('Установка зависимостей') {
             steps {
-                bat '''
-                    venv\\Scripts\\python.exe -m pip list
-                '''
+                bat 'venv\\Scripts\\python.exe -m pip list'
             }
         }
 
-        stage('Django запуск') {
+        stage('Миграции БД') {
             steps {
-                bat '''
-                    venv\\Scripts\\python.exe manage.py check
-                '''
+                bat 'venv\\Scripts\\python.exe manage.py migrate'
             }
         }
 
         stage('Запуск тестов') {
             steps {
+                bat 'venv\\Scripts\\python.exe -m pytest --disable-warnings -q'
+            }
+        }
+
+        stage('Перезапуск Django') {
+            steps {
                 bat '''
-                    venv\\Scripts\\python.exe -m pytest --disable-warnings -q
+                    "D:\\Tools\\nssm\\nssm-2.24\\win64\\nssm.exe" stop DjangoServer
+                    ping 127.0.0.1 -n 3 > nul
+                    "D:\\Tools\\nssm\\nssm-2.24\\win64\\nssm.exe" start DjangoServer
+                    ping 127.0.0.1 -n 4 > nul
+                    echo Django перезапущен 
+                '''
+            }
+        }
+
+        stage('Перезапуск Vue') {
+            steps {
+                bat '''
+                    "D:\\Tools\\nssm\\nssm-2.24\\win64\\nssm.exe" stop VueServer
+                    ping 127.0.0.1 -n 3 > nul
+                    "D:\\Tools\\nssm\\nssm-2.24\\win64\\nssm.exe" start VueServer
+                    ping 127.0.0.1 -n 4 > nul
+                    echo Vue перезапущен 
                 '''
             }
         }
@@ -46,10 +61,10 @@ pipeline {
 
     post {
         success {
-            echo 'CI ок.'
+            echo 'CI ок. Django и Vue перезапущены.'
         }
         failure {
-            echo 'CI упал.'
+            echo ' CI упал.'
         }
     }
 }
