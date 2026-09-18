@@ -8,7 +8,7 @@ pipeline {
             }
         }
 
-        stage('Prepare Python env') {
+        stage('Подготовить среду Python') {
             steps {
                 bat '''
                     "C:\\Users\\Tecno\\AppData\\Local\\Programs\\Python\\Python312\\python.exe" -m venv venv
@@ -19,7 +19,7 @@ pipeline {
             }
         }
 
-        stage('Install dependencies') {
+        stage('Установка зависимостей') {
             steps {
                 bat '''
                     venv\\Scripts\\python.exe -m pip list
@@ -27,7 +27,7 @@ pipeline {
             }
         }
 
-        stage('Django checks') {
+        stage('Django запуск') {
             steps {
                 bat '''
                     venv\\Scripts\\python.exe manage.py check
@@ -35,30 +35,21 @@ pipeline {
             }
         }
 
-        stage('Run tests') {
+        stage('Запуск тестов') {
             steps {
                 bat '''
-                    venv\\Scripts\\python.exe -m pytest --maxfail=1 --disable-warnings -q --junitxml=report.xml
+                    venv\\Scripts\\python.exe -m pytest --disable-warnings -q
                 '''
             }
         }
     }
 
     post {
-        always {
-            script {
-                if (fileExists('report.xml')) {
-                    junit 'report.xml'
-                } else {
-                    echo '⚠️ report.xml не найден — pytest не создал отчёт.'
-                }
-            }
-        }
         success {
-            echo ' CI ок.'
+            echo 'CI ок.'
         }
         failure {
-            echo ' CI упал.'
+            echo 'CI упал.'
         }
     }
 }
