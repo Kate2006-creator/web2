@@ -3,9 +3,7 @@ pipeline {
 
     stages {
         stage('Checkout') {
-            steps {
-                checkout scm
-            }
+            steps { checkout scm }
         }
 
         stage('Подготовить среду Python') {
@@ -24,31 +22,38 @@ pipeline {
             }
         }
 
+        stage('Миграции БД') {
+            steps {
+                bat 'venv\\Scripts\\python.exe manage.py migrate'
+            }
+        }
+
         stage('Запуск тестов') {
             steps {
                 bat 'venv\\Scripts\\python.exe -m pytest --disable-warnings -q'
             }
         }
 
-        stage('Django') {
+        stage('Перезапуск Django') {
             steps {
                 bat '''
-                    start /B venv\\Scripts\\python.exe manage.py runserver 8000 > django.log 2>&1
-                    echo Django запущен на http://localhost:8000/
+                    "D:\\Tools\\nssm\\nssm-2.24\\win64\\nssm.exe" stop DjangoServer
+                    ping 127.0.0.1 -n 3 > nul
+                    "D:\\Tools\\nssm\\nssm-2.24\\win64\\nssm.exe" start DjangoServer
+                    ping 127.0.0.1 -n 4 > nul
+                    echo Django перезапущен 
                 '''
             }
         }
 
-        stage('Vue') {
+        stage('Перезапуск Vue') {
             steps {
                 bat '''
-                    cd /d "%WORKSPACE%\\client"
-                    if not exist node_modules (
-                        npm install
-                    )
-                    start /B npm run serve -- --port 3000 > vue.log 2>&1
-                    timeout /t 10 /nobreak
-                    echo Vue запущен на http://localhost:3000/
+                    "D:\\Tools\\nssm\\nssm-2.24\\win64\\nssm.exe" stop VueServer
+                    ping 127.0.0.1 -n 3 > nul
+                    "D:\\Tools\\nssm\\nssm-2.24\\win64\\nssm.exe" start VueServer
+                    ping 127.0.0.1 -n 4 > nul
+                    echo Vue перезапущен 
                 '''
             }
         }
@@ -56,10 +61,10 @@ pipeline {
 
     post {
         success {
-            echo 'CI ок. Серверы запущены.'
+            echo 'CI ок. Django и Vue перезапущены.'
         }
         failure {
-            echo 'CI упал.'
+            echo ' CI упал.'
         }
     }
 }
