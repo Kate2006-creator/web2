@@ -8,51 +8,45 @@ pipeline {
             }
         }
 
-        stage('Prepare Python env') {
+        stage('Подготовить среду Python') {
             steps {
                 bat '''
-                    python -m venv venv
+                    "C:\\Users\\Tecno\\AppData\\Local\\Programs\\Python\\Python312\\python.exe" -m venv venv
                     call venv\\Scripts\\activate.bat
-                    python -m pip install --upgrade pip
-                    pip install -r requirements.txt
+                    venv\\Scripts\\python.exe -m pip install --upgrade pip
+                    venv\\Scripts\\python.exe -m pip install -r requirements.txt
                 '''
             }
         }
 
-        stage('Install dependencies') {
+        stage('Установка зависимостей') {
             steps {
                 bat '''
-                    call venv\\Scripts\\activate.bat
-                    pip list
+                    venv\\Scripts\\python.exe -m pip list
                 '''
             }
         }
 
-        stage('Django checks') {
+        stage('Django запуск') {
             steps {
                 bat '''
-                    call venv\\Scripts\\activate.bat
-                    python manage.py check
+                    venv\\Scripts\\python.exe manage.py check
                 '''
             }
         }
 
-        stage('Run tests') {
+        stage('Запуск тестов') {
             steps {
                 bat '''
-                    call venv\\Scripts\\activate.bat
-                    pytest --maxfail=1 --disable-warnings -q --junitxml=report.xml
+                    venv\\Scripts\\python.exe -m pytest --disable-warnings -q
                 '''
             }
         }
     }
 
     post {
-        always {
-            junit 'report.xml'
-        }
         success {
-            echo ' CI ок.'
+            echo 'CI ок.'
         }
         failure {
             echo 'CI упал.'
