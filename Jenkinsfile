@@ -23,6 +23,12 @@ pipeline {
         }
 
         stage('Миграции БД') {
+            when {
+                anyOf {
+                    branch 'dev'
+                    branch 'master'
+                }
+            }
             steps {
                 bat 'venv\\Scripts\\python.exe manage.py migrate'
             }
@@ -35,25 +41,37 @@ pipeline {
         }
 
         stage('Перезапуск Django') {
+            when {
+                anyOf {
+                    branch 'dev'
+                    branch 'master'
+                }
+            }
             steps {
                 bat '''
                     "D:\\Tools\\nssm\\nssm-2.24\\win64\\nssm.exe" stop DjangoServer
                     ping 127.0.0.1 -n 3 > nul
                     "D:\\Tools\\nssm\\nssm-2.24\\win64\\nssm.exe" start DjangoServer
                     ping 127.0.0.1 -n 4 > nul
-                    echo Django перезапущен 
+                    echo Django  http://localhost:8000/
                 '''
             }
         }
 
         stage('Перезапуск Vue') {
+            when {
+                anyOf {
+                    branch 'dev'
+                    branch 'master'
+                }
+            }
             steps {
                 bat '''
                     "D:\\Tools\\nssm\\nssm-2.24\\win64\\nssm.exe" stop VueServer
                     ping 127.0.0.1 -n 3 > nul
                     "D:\\Tools\\nssm\\nssm-2.24\\win64\\nssm.exe" start VueServer
                     ping 127.0.0.1 -n 4 > nul
-                    echo Vue перезапущен 
+                    echo Vue http://localhost:3000/
                 '''
             }
         }
@@ -61,10 +79,10 @@ pipeline {
 
     post {
         success {
-            echo 'CI ок. Django и Vue перезапущены.'
+            echo 'CI ок.'
         }
         failure {
-            echo ' CI упал.'
+            echo 'CI упал.'
         }
     }
 }
