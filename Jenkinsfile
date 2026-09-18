@@ -27,13 +27,28 @@ pipeline {
             }
         }
 
-        stage('Django запуск') {
+        stage('Django') {
             steps {
                 bat '''
-                    venv\\Scripts\\python.exe manage.py check
+                    cd /d "%WORKSPACE%"
+                    call venv\\Scripts\\activate.bat
+                    start /B venv\\Scripts\\python.exe manage.py runserver 8000 > django.log 2>&1
+                    timeout /t 5 /nobreak
                 '''
             }
         }
+        stage('Vue') {
+            steps {
+                bat '''
+                    cd /d "%WORKSPACE%\\client"
+                    if not exist node_modules ( npm install )
+                    start /B npm run serve -- --port 3000 > vue.log 2>&1
+                    timeout /t 10 /nobreak
+                '''
+            }
+        }
+    }
+}
 
         stage('Запуск тестов') {
             steps {
@@ -42,7 +57,7 @@ pipeline {
                 '''
             }
         }
-    }
+    
 
     post {
         success {
@@ -52,4 +67,3 @@ pipeline {
             echo 'CI упал.'
         }
     }
-}
