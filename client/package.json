@@ -16,6 +16,8 @@
     "bootstrap-icons": "^1.13.1",
     "pinia": "^3.0.4",
     "vue": "^3.5.25",
+    "axios": "^1.7.9",
+    "js-cookie": "^3.0.5",
     "vue-router": "^4.6.3"
   },
   "devDependencies": {
