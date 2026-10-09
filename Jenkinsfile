@@ -16,31 +16,13 @@ pipeline {
             }
         }
 
-        stage('Установка зависимостей') {
-            steps {
-                bat 'venv\\Scripts\\python.exe -m pip list'
-            }
-        }
-
-        stage('Миграции БД') {
-            when {
-                anyOf {
-                    branch 'dev'
-                    branch 'master'
-                }
-            }
-            steps {
-                bat 'venv\\Scripts\\python.exe manage.py migrate'
-            }
-        }
-
         stage('Запуск тестов') {
             steps {
                 bat 'venv\\Scripts\\python.exe -m pytest --disable-warnings -q'
             }
         }
 
-        stage('Перезапуск Django') {
+        stage('Сборка Docker-образов') {
             when {
                 anyOf {
                     branch 'dev'
@@ -48,17 +30,11 @@ pipeline {
                 }
             }
             steps {
-                bat '''
-                    "D:\\Tools\\nssm\\nssm-2.24\\win64\\nssm.exe" stop DjangoServer
-                    ping 127.0.0.1 -n 3 > nul
-                    "D:\\Tools\\nssm\\nssm-2.24\\win64\\nssm.exe" start DjangoServer
-                    ping 127.0.0.1 -n 4 > nul
-                    echo Django  http://localhost:8000/
-                '''
+                bat 'docker compose build'
             }
         }
 
-        stage('Перезапуск Vue') {
+        stage('Остановка старых контейнеров') {
             when {
                 anyOf {
                     branch 'dev'
@@ -66,23 +42,37 @@ pipeline {
                 }
             }
             steps {
-                bat '''
-                    "D:\\Tools\\nssm\\nssm-2.24\\win64\\nssm.exe" stop VueServer
-                    ping 127.0.0.1 -n 3 > nul
-                    "D:\\Tools\\nssm\\nssm-2.24\\win64\\nssm.exe" start VueServer
-                    ping 127.0.0.1 -n 4 > nul
-                    echo Vue http://localhost:3000/
-                '''
+                bat 'docker compose down || exit 0'
+            }
+        }
+
+        stage('Запуск контейнеров') {
+            when {
+                anyOf {
+                    branch 'dev'
+                    branch 'master'
+                }
+            }
+            steps {
+                bat 'docker compose up -d'
+            }
+        }
+
+        stage('Проверка') {
+            when {
+                anyOf {
+                    branch 'dev'
+                    branch 'master'
+                }
+            }
+            steps {
+                bat 'docker ps'
             }
         }
     }
 
     post {
-        success {
-            echo 'CI ок.'
-        }
-        failure {
-            echo 'CI упал.'
-        }
+        success { echo 'Контейнеры запущены' }
+        failure { echo 'Умер(' }
     }
 }
