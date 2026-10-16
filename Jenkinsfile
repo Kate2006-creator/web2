@@ -34,7 +34,7 @@ pipeline {
             }
         }
 
-        stage('Остановка старых контейнеров') {
+       stage('Остановка локальных контейнеров') {
             when {
                 anyOf {
                     branch 'dev'
@@ -42,7 +42,10 @@ pipeline {
                 }
             }
             steps {
-                bat 'docker compose down || exit 0'
+                bat '''
+                    cd /d C:\\Users\\Tecno\\OneDrive\\Desktop\\web2
+                    docker compose down || exit 0
+                    '''
             }
         }
 
