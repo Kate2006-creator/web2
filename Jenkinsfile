@@ -3,59 +3,68 @@ pipeline {
 
     stages {
         stage('Checkout') {
-            steps {
-                checkout scm
-            }
+            steps { checkout scm }
         }
 
-        stage('Prepare Python env') {
+        stage('Подготовить среду Python') {
             steps {
                 bat '''
-                    python -m venv venv
-                    call venv\\Scripts\\activate.bat
-                    python -m pip install --upgrade pip
-                    pip install -r requirements.txt
+                    "C:\\Users\\Tecno\\AppData\\Local\\Programs\\Python\\Python312\\python.exe" -m venv venv
+                    venv\\Scripts\\python.exe -m pip install --upgrade pip
+                    venv\\Scripts\\python.exe -m pip install -r requirements.txt
                 '''
             }
         }
 
-        stage('Install dependencies') {
+        stage('Установка зависимостей') {
+            steps {
+                bat 'venv\\Scripts\\python.exe -m pip list'
+            }
+        }
+
+        stage('Миграции БД') {
+            steps {
+                bat 'venv\\Scripts\\python.exe manage.py migrate'
+            }
+        }
+
+        stage('Запуск тестов') {
+            steps {
+                bat 'venv\\Scripts\\python.exe -m pytest --disable-warnings -q'
+            }
+        }
+
+        stage('Перезапуск Django') {
             steps {
                 bat '''
-                    call venv\\Scripts\\activate.bat
-                    pip list
+                    "D:\\Tools\\nssm\\nssm-2.24\\win64\\nssm.exe" stop DjangoServer
+                    ping 127.0.0.1 -n 3 > nul
+                    "D:\\Tools\\nssm\\nssm-2.24\\win64\\nssm.exe" start DjangoServer
+                    ping 127.0.0.1 -n 4 > nul
+                    echo Django перезапущен 
                 '''
             }
         }
 
-        stage('Django checks') {
+        stage('Перезапуск Vue') {
             steps {
                 bat '''
-                    call venv\\Scripts\\activate.bat
-                    python manage.py check
-                '''
-            }
-        }
-
-        stage('Run tests') {
-            steps {
-                bat '''
-                    call venv\\Scripts\\activate.bat
-                    pytest --maxfail=1 --disable-warnings -q --junitxml=report.xml
+                    "D:\\Tools\\nssm\\nssm-2.24\\win64\\nssm.exe" stop VueServer
+                    ping 127.0.0.1 -n 3 > nul
+                    "D:\\Tools\\nssm\\nssm-2.24\\win64\\nssm.exe" start VueServer
+                    ping 127.0.0.1 -n 4 > nul
+                    echo Vue перезапущен 
                 '''
             }
         }
     }
 
     post {
-        always {
-            junit 'report.xml'
-        }
         success {
-            echo ' CI ок.'
+            echo 'CI ок. Django и Vue перезапущены.'
         }
         failure {
-            echo 'CI упал.'
+            echo ' CI упал.'
         }
     }
 }
