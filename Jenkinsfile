@@ -2,10 +2,8 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_HUB_USER = 'kate34534534'
-        DOCKER_HUB_CREDS = 'docker-hub'
-        BACKEND_IMAGE = "${DOCKER_HUB_USER}/web2-backend"
-        FRONTEND_IMAGE = "${DOCKER_HUB_USER}/web2-frontend"
+        DOCKER_REPO = 'kate34534534/web2-app'
+
     }
 
     stages {
@@ -48,10 +46,10 @@ pipeline {
                 }
             }
             steps {
-                bat '''
-                    docker build -t kate34534534/web2-backend:latest .
-                    docker build -t kate34534534/web2-frontend:latest ./client
-                '''
+                bat """
+                    docker build -t ${DOCKER_REPO}:backend .
+                    docker build -t ${DOCKER_REPO}:frontend ./client
+                """
             }
         }
 
@@ -63,10 +61,10 @@ pipeline {
                 }
             }
             steps {
-                bat '''
-                    docker push kate34534534/web2-backend:latest
-                    docker push kate34534534/web2-frontend:latest
-                '''
+                bat """
+                    docker push ${DOCKER_REPO}:backend
+                    docker push ${DOCKER_REPO}:frontend
+                """
             }
         }
 
