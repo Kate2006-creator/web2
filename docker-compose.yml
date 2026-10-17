@@ -1,6 +1,7 @@
 services:
   backend:
     build: .
+    image: kate34534534/web2-backend:latest
     command: python manage.py runserver 0.0.0.0:8000
     volumes:
       - ./db.sqlite3:/app/db.sqlite3
@@ -11,6 +12,7 @@ services:
 
   frontend:
     build: ./client
+    image: kate34534534/web2-frontend:latest
     networks:
       - webnet
     expose:

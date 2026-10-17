@@ -1,6 +1,13 @@
 pipeline {
     agent any
 
+    environment {
+        DOCKER_HUB_USER = 'kate34534534'
+        DOCKER_HUB_CREDS = 'docker-hub'
+        BACKEND_IMAGE = "${DOCKER_HUB_USER}/web2-backend"
+        FRONTEND_IMAGE = "${DOCKER_HUB_USER}/web2-frontend"
+    }
+
     stages {
         stage('Checkout') {
             steps { checkout scm }
@@ -22,7 +29,18 @@ pipeline {
             }
         }
 
-        stage('Сборка Docker-образов') {
+        stage('Логин в Docker Hub') {
+            when {
+                anyOf { branch 'dev'; branch 'master' }
+            }
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'docker-hub', passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
+                    bat 'echo %DOCKER_PASS% | docker login -u %DOCKER_USER% --password-stdin'
+                }
+            }
+        }
+
+        stage('Сборка и тегирование образов') {
             when {
                 anyOf {
                     branch 'dev'
@@ -30,9 +48,28 @@ pipeline {
                 }
             }
             steps {
-                bat 'docker compose build'
+                bat '''
+                    docker build -t kate34534534/web2-backend:latest .
+                    docker build -t kate34534534/web2-frontend:latest ./client
+                '''
             }
         }
+
+        stage('Пуш в Docker Hub') {
+            when {
+                anyOf {
+                    branch 'dev'
+                    branch 'master'
+                }
+            }
+            steps {
+                bat '''
+                    docker push kate34534534/web2-backend:latest
+                    docker push kate34534534/web2-frontend:latest
+                '''
+            }
+        }
+
 
        stage('Остановка локальных контейнеров') {
             when {
