@@ -109,6 +109,7 @@ pipeline {
         }
     }
 
+
     post {
         success { echo 'Контейнеры запущены' }
         failure { echo 'Умер(' }
