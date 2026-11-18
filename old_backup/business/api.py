@@ -1,7 +1,7 @@
 from rest_framework.viewsets import GenericViewSet
 from rest_framework import mixins, viewsets
-from business.models import Project, Favour, Review, ProjectService
-from general.models import UserProfile
+from old_backup.business.models import Project, Favour, Review, ProjectService
+from users_service.general.models import UserProfile
 from django.contrib.auth.models import User
 
 from rest_framework import status
@@ -18,8 +18,8 @@ from rest_framework import serializers
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from business.serializers import ProjectSerializer, ProjectServiceSerializer, FavourSerializer, ReviewSerializer, UserProfileSerializer, UserSerializer
-from business.word_exporter import WordExporter
+from old_backup.business.serializers import ProjectSerializer, ProjectServiceSerializer, FavourSerializer, ReviewSerializer, UserProfileSerializer, UserSerializer
+from old_backup.business.word_exporter import WordExporter
 
 class ProjectsViewset(mixins.ListModelMixin, mixins.CreateModelMixin, mixins.DestroyModelMixin, mixins.RetrieveModelMixin, mixins.UpdateModelMixin, GenericViewSet):
 

@@ -1,35 +1,21 @@
 from django.test import TestCase
 from rest_framework.test import APIClient
-from django.contrib.auth.models import User
-from general.models import UserProfile
 from business.models import Project, Review, Favour, ProjectService
 from model_bakery import baker
-
-# Create your tests here.
 
 class ProjectsViewsetTestCase(TestCase):
     def setUp(self):
         self.client = APIClient()
+        # В бизнес-сервисе мы не создаем пользователей, 
+        # мы просто используем их ID (например, 1) для связи.
+        self.client_user_id = 1
 
-        self.user = User.objects.create_user(
-            username='testuser',
-            password='testpass123'
-        )
-
-        self.client_profile = UserProfile.objects.get(user=self.user)
-        self.client_profile.user_type = 'client'
-        self.client_profile.fio = "Тестовый Клиент"
-        self.client_profile.company_name = "Test"
-        self.client_profile.save()
-
-        self.client.force_authenticate(user=self.user)
-    
     def tests_get_list(self):
         project = Project.objects.create(
             name = "Создание веб-страницы",
             description = "Помочь клиенту соблюсти требования",
             status = "в работе",
-            client_user = self.user
+            client_user_id = self.client_user_id  # ИСПРАВЛЕНО
         )
         r = self.client.get('/api/projects/')
 
@@ -44,7 +30,8 @@ class ProjectsViewsetTestCase(TestCase):
         r = self.client.post("/api/projects/", {
             "name": "Новый проект",
             "description": "Выживаем",
-            "status": "Планирование"
+            "status": "Планирование",
+            "client_user_id": self.client_user_id # Добавили ID клиента
         }) 
 
         new_project_id = r.json()['id']       
@@ -53,11 +40,11 @@ class ProjectsViewsetTestCase(TestCase):
 
         new_project = Project.objects.filter(id=new_project_id).first()
         assert new_project.name == 'Новый проект'
-        assert new_project.client_user == self.user
+        assert new_project.client_user_id == self.client_user_id # ИСПРАВЛЕНО
         assert new_project.status == "Планирование"
 
     def tests_delete_project(self):
-        projects = baker.make("Project", 10, client_user=self.user)
+        projects = baker.make("Project", 10, client_user_id=self.client_user_id) # ИСПРАВЛЕНО
         
         r = self.client.get('/api/projects/')
         self.assertEqual(r.status_code, 200)
@@ -74,7 +61,7 @@ class ProjectsViewsetTestCase(TestCase):
         assert project_id_to_delete not in [i['id'] for i in data]
     
     def tests_update_project(self):
-        projects = baker.make("Project", 10, client_user=self.user)
+        projects = baker.make("Project", 10, client_user_id=self.client_user_id) # ИСПРАВЛЕНО
         project: Project = projects[3]
 
         r = self.client.get(f'/api/projects/{project.id}/')
@@ -166,24 +153,14 @@ class FavoursViewsetTestCase(TestCase):
 class ReviewsViewsetTestCase(TestCase):
     def setUp(self):
         self.client = APIClient()
-
-        self.user = User.objects.create_user(
-            username='testuser',
-            password='testpass123'
-        )
-
-        self.client_profile = UserProfile.objects.get(user=self.user)
-        self.client_profile.user_type = 'client'
-        self.client_profile.fio = "Тестовый Клиент"
-        self.client_profile.company_name = "Test"
-        self.client_profile.save()
+        self.client_user_id = 1
     
     def tests_get_list(self):
         project = Project.objects.create(
             name="Тестовый проект",
             description="Описание проекта",
             status="в работе",
-            client_user=self.user
+            client_user_id=self.client_user_id # ИСПРАВЛЕНО
         )
         
         review = Review.objects.create(
@@ -207,7 +184,7 @@ class ReviewsViewsetTestCase(TestCase):
             name="Проект для отзыва",
             description="Описание",
             status="завершен",
-            client_user=self.user
+            client_user_id=self.client_user_id # ИСПРАВЛЕНО
         )
         
         r = self.client.post("/api/reviews/", {
@@ -230,7 +207,7 @@ class ReviewsViewsetTestCase(TestCase):
             name="Проект для теста",
             description="Описание",
             status="в работе",
-            client_user=self.user
+            client_user_id=self.client_user_id # ИСПРАВЛЕНО
         )
 
         reviews = baker.make("Review", 10, pr=project)
@@ -255,7 +232,7 @@ class ReviewsViewsetTestCase(TestCase):
             name="Проект для обновления",
             description="Описание",
             status="в работе",
-            client_user=self.user
+            client_user_id=self.client_user_id # ИСПРАВЛЕНО
         )
         
         reviews = baker.make("Review", 10, pr=project)
@@ -281,37 +258,15 @@ class ReviewsViewsetTestCase(TestCase):
 class ProjectServicesViewsetTestCase(TestCase):
     def setUp(self):
         self.client = APIClient()
-
-        self.user1 = User.objects.create_user(
-            username='testuser1',
-            password='testpass123222'
-        )
-
-        self.client_profile = UserProfile.objects.get(user=self.user1)
-        self.client_profile.user_type = 'client'
-        self.client_profile.fio = "Тестовый Клиент"
-        self.client_profile.company_name = "Test"
-        self.client_profile.save()
-
-        self.user2 = User.objects.create_user(
-            username='testuser2',
-            password='testpass123221111'
-        )
-
-        self.client_profile = UserProfile.objects.get(user=self.user2)
-        self.client_profile.user_type = 'employee'
-        self.client_profile.fio = "Тестовый сотрудник"
-        self.client_profile.position = "Test"
-        self.client_profile.save()
-
-        self.client.force_authenticate(user=self.user1)
+        self.client_user_id = 1
+        self.employee_user_id = 2
     
     def tests_get_list(self):
         project = Project.objects.create(
             name="Тестовый проект",
             description="Описание проекта",
             status="в работе",
-            client_user=self.user1
+            client_user_id=self.client_user_id # ИСПРАВЛЕНО
         )
         
         favour = Favour.objects.create(
@@ -323,7 +278,7 @@ class ProjectServicesViewsetTestCase(TestCase):
         project_service = ProjectService.objects.create(
             project=project,
             favour=favour,
-            employee_user=self.user2,
+            employee_user_id=self.employee_user_id, # ИСПРАВЛЕНО
             notes="Тестовые примечания"
         )
         
@@ -340,7 +295,7 @@ class ProjectServicesViewsetTestCase(TestCase):
             name="Проект для услуги",
             description="Описание",
             status="в работе",
-            client_user=self.user1
+            client_user_id=self.client_user_id # ИСПРАВЛЕНО
         )
         
         favour = Favour.objects.create(
@@ -352,7 +307,7 @@ class ProjectServicesViewsetTestCase(TestCase):
         r = self.client.post("/api/project_services/", {
             "project": project.id,
             "favour": favour.id,
-            "employee_user": self.user2.id,
+            "employee_user_id": self.employee_user_id, # ИСПРАВЛЕНО
             "notes": "Новые примечания"
         }) 
         
@@ -363,7 +318,7 @@ class ProjectServicesViewsetTestCase(TestCase):
         new_project_service = ProjectService.objects.filter(id=new_project_service_id).first()
         assert new_project_service.project == project
         assert new_project_service.favour == favour
-        assert new_project_service.employee_user == self.user2
+        assert new_project_service.employee_user_id == self.employee_user_id # ИСПРАВЛЕНО
         assert new_project_service.notes == "Новые примечания"
 
     def tests_delete_project_service(self):
@@ -371,7 +326,7 @@ class ProjectServicesViewsetTestCase(TestCase):
             name="Проект для теста",
             description="Описание",
             status="в работе",
-            client_user=self.user1
+            client_user_id=self.client_user_id # ИСПРАВЛЕНО
         )
 
         favour = Favour.objects.create(
@@ -380,7 +335,7 @@ class ProjectServicesViewsetTestCase(TestCase):
             price=10000.0
         )
 
-        project_services = baker.make("ProjectService", 10, project=project, favour=favour, employee_user=self.user1)
+        project_services = baker.make("ProjectService", 10, project=project, favour=favour, employee_user_id=self.employee_user_id) # ИСПРАВЛЕНО
         
         r = self.client.get('/api/project_services/')
         data = r.json()
@@ -402,7 +357,7 @@ class ProjectServicesViewsetTestCase(TestCase):
             name="Проект для обновления",
             description="Описание",
             status="в работе",
-            client_user=self.user1
+            client_user_id=self.client_user_id # ИСПРАВЛЕНО
         )
         
         favour = Favour.objects.create(
@@ -411,7 +366,7 @@ class ProjectServicesViewsetTestCase(TestCase):
             price=20000.0
         )
         
-        project_services = baker.make("ProjectService", 10, project=project, favour=favour, employee_user=self.user1)
+        project_services = baker.make("ProjectService", 10, project=project, favour=favour, employee_user_id=self.employee_user_id) # ИСПРАВЛЕНО
         project_service: ProjectService = project_services[3]
 
         r = self.client.get(f'/api/project_services/{project_service.id}/')

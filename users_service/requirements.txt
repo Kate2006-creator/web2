@@ -1,0 +1,11 @@
+django==6.0
+djangorestframework==3.16.1
+django-cors-headers
+Pillow
+python-docx
+psycopg2-binary
+requests
+pytest-django==4.11.1
+Faker==38.2.0
+model-bakery
+gunicorn

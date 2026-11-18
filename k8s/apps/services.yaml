@@ -1,0 +1,89 @@
+apiVersion: apps/v1
+kind: Deployment #управляет репликами (подами) и обновлениями
+metadata:
+  name: users-service
+spec:
+  replicas: 2 # Две реплики для отказоустойчивости
+  selector:
+    matchLabels: #метка
+      app: users-service
+  template: #шаблон для создания подов.
+    metadata:
+      labels:
+        app: users-service
+    spec:
+      containers: #список контейнеров внутри пода.
+      - name: users-service
+        image: kate34534534/web2-app:users-service-v10 # образ с Docker Hub
+        env: #переменные окружения, которые передаются в контейнер
+        - name: DB_HOST
+          value: "users-db"
+        - name: DB_NAME
+          value: "users_db"
+        - name: POSTGRES_USER
+          value: "postgres"
+        - name: POSTGRES_PASSWORD
+          value: "postgres"
+        - name: DEBUG
+          value: "True"
+        ports:
+        - containerPort: 8000
+
+        command: ["sh", "-c", "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"]
+---
+apiVersion: v1
+kind: Service #создает постоянную точку входа для доступа к подам
+metadata:
+  name: users-service
+spec:
+  selector: #какие поды обслуживает этот сервис
+    app: users-service
+  ports:
+    - port: 8000
+      targetPort: 8000
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: business-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: business-service
+  template:
+    metadata:
+      labels:
+        app: business-service
+    spec:
+      containers:
+      - name: business-service
+        image: kate34534534/web2-app:business-service-v10
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: DB_HOST
+          value: "business-db"
+        - name: DB_NAME
+          value: "business_db"
+        - name: POSTGRES_USER
+          value: "postgres"
+        - name: POSTGRES_PASSWORD
+          value: "postgres"
+
+        - name: USERS_SERVICE_URL
+          value: "http://users-service:8000"
+        ports:
+        - containerPort: 8000
+        command: ["sh", "-c", "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: business-service
+spec:
+  selector:
+    app: business-service
+  ports:
+    - port: 8000
+      targetPort: 8000

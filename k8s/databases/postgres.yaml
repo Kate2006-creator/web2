@@ -1,0 +1,114 @@
+#пользователи (хранилище, тип: деплой, тип: сервис)
+apiVersion: v1
+kind: PersistentVolumeClaim #запрос на постоянное хранилище, чтобы данные не терялись при перезапуске пода
+metadata:
+  name: users-db-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce #том может быть смонтирован только на одну ноду 
+  resources:
+    requests:
+      storage: 1Gi #1 гб дискового пространства
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: users-db
+spec:
+  replicas: 1 #реплики для БД не нужны, так как это stateful-сервис
+  selector:
+    matchLabels:
+      app: users-db
+  template:
+    metadata:
+      labels:
+        app: users-db
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:15-alpine
+        env:
+        - name: POSTGRES_DB
+          value: "users_db"
+        - name: POSTGRES_USER
+          value: "postgres"
+        - name: POSTGRES_PASSWORD
+          value: "postgres"
+        ports:
+        - containerPort: 5432
+        volumeMounts:
+        - name: users-db-storage
+          mountPath: /var/lib/postgresql/data #монтируем постоянный том в папку, где постгрес хранит данные
+      volumes:
+      - name: users-db-storage
+        persistentVolumeClaim:
+          claimName: users-db-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: users-db
+spec:
+  selector:
+    app: users-db
+  ports:
+    - port: 5432
+      targetPort: 5432
+
+---
+# бизнес (хранилище, тип: деплой, тип: сервис)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: business-db-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: business-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: business-db
+  template:
+    metadata:
+      labels:
+        app: business-db
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:15-alpine
+        env:
+        - name: POSTGRES_DB
+          value: "business_db"
+        - name: POSTGRES_USER
+          value: "postgres"
+        - name: POSTGRES_PASSWORD
+          value: "postgres"
+        ports:
+        - containerPort: 5432
+        volumeMounts:
+        - name: business-db-storage
+          mountPath: /var/lib/postgresql/data
+      volumes:
+      - name: business-db-storage
+        persistentVolumeClaim:
+          claimName: business-db-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: business-db
+spec:
+  selector:
+    app: business-db
+  ports:
+    - port: 5432
+      targetPort: 5432

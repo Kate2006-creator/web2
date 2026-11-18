@@ -1,35 +1,54 @@
+version: '3.8'
+
 services:
-  backend:
-    build: .
-    image: kate34534534/web2-app:backend
-    command: python manage.py runserver 0.0.0.0:8000
+  users-db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: users_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
     volumes:
-      - ./db.sqlite3:/app/db.sqlite3
-    networks:
-      - webnet
-    expose:
-      - "8000"
+      - users_db_data:/var/lib/postgresql/data
+
+  business-db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: business_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - business_db_data:/var/lib/postgresql/data
+
+  users-service:
+    build: ./users_service
+    environment:
+      DB_HOST: users-db
+      DB_NAME: users_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "8001:8000"
+    depends_on:
+      - users-db
+
+  business-service:
+    build: ./business_service
+    environment:
+      DB_HOST: business-db
+      DB_NAME: business_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "8002:8000"
+    depends_on:
+      - business-db
+      - users-service
 
   frontend:
     build: ./client
-    image: kate34534534/web2-app:frontend
-    networks:
-      - webnet
-    expose:
-      - "3000"
-
-  nginx:
-    image: nginx:alpine
     ports:
-      - "80:80"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
-    depends_on:
-      - backend
-      - frontend
-    networks:
-      - webnet
+      - "3000:3000"
 
-networks:
-  webnet:
-    driver: bridge
+volumes:
+  users_db_data:
+  business_db_data:
