@@ -1,8 +1,8 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
 
-from business.models import Project, Review, Favour, ProjectService
-from general.models import UserProfile
+from old_backup.business.models import Project, Review, Favour, ProjectService
+from users_service.general.models import UserProfile
 
 class ProjectSerializer(serializers.ModelSerializer):
     client_fio = serializers.CharField(source='client_user.profile.fio', read_only=True)

@@ -4,8 +4,8 @@ from django.db import transaction
 from django.contrib.auth.models import User
 import random
 
-from general.models import UserProfile
-from business.models import Favour, Project, Review, ProjectService
+from users_service.general.models import UserProfile
+from old_backup.business.models import Favour, Project, Review, ProjectService
 
 class Command(BaseCommand):
     def handle(self, *args, **options):

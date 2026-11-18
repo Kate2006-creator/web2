@@ -1,7 +1,4 @@
 from django.db import models
-from django.contrib.auth.models import User
-from general.models import UserProfile 
-
 
 # Create your models here.
 
@@ -22,12 +19,10 @@ class Project(models.Model):
     description = models.TextField("Описание")
     status = models.TextField("Статус")
 
-    client_user = models.ForeignKey(
-        User, 
-        on_delete=models.SET_NULL,
-        verbose_name="Клиент",
-        null=True,
-    )
+    # БЫЛО: client_user = models.ForeignKey(User, ...)
+    # СТАЛО: просто ID пользователя из users_service
+    client_user_id = models.IntegerField("ID Клиента", null=True, blank=True)
+
     class Meta:
         verbose_name = "Проект"
         verbose_name_plural = "Проекты"
@@ -52,12 +47,10 @@ class ProjectService(models.Model):
     project = models.ForeignKey("Project", on_delete=models.CASCADE, verbose_name="Проект", null=True)
     favour = models.ForeignKey("Favour", on_delete=models.CASCADE, verbose_name="Услуга",null=True)
 
-    employee_user = models.ForeignKey(
-        User, 
-        on_delete=models.SET_NULL,
-        verbose_name="Сотрудник",
-        null=True,
-    )
+    # БЫЛО: employee_user = models.ForeignKey(User, ...)
+    # СТАЛО: просто ID сотрудника из users_service
+    employee_user_id = models.IntegerField("ID Сотрудника", null=True, blank=True)
+    
     notes = models.TextField("Примечания", blank=True)
 
     class Meta:
@@ -66,7 +59,3 @@ class ProjectService(models.Model):
     
     def __str__(self) -> str:
         return f"{self.favour.name} - {self.project.name}"
-
-
-
-    
